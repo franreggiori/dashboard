@@ -1,0 +1,72 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+enum CargadoPor {
+  FRAN
+  DANI
+  AGUSTINA
+}
+
+enum ProspectEstado {
+  PENDIENTE
+  CONTACTADO
+  EN_SEGUIMIENTO
+  NEGOCIACION
+  CERRADO
+  PERDIDO
+}
+
+enum PortfolioTipo {
+  CONSERVADORA
+  MODERADA
+  AGRESIVA
+}
+
+enum TipoActivo {
+  RENTA_FIJA
+  RENTA_VARIABLE
+}
+
+model Prospect {
+  id                String         @id @default(uuid())
+  nombre            String
+  cargadoPor        CargadoPor
+  fechaCarga        DateTime       @default(now())
+  estado            ProspectEstado @default(PENDIENTE)
+  comentario        String?
+  proximaAccionFecha DateTime?
+  proximaAccionNota String?
+  updatedAt         DateTime       @updatedAt
+}
+
+model PortfolioTemplate {
+  id          String         @id @default(uuid())
+  tipo        PortfolioTipo  @unique
+  descripcion String?
+  items       PortfolioItem[]
+}
+
+model PortfolioItem {
+  id          String     @id @default(uuid())
+  templateId  String
+  activoNombre String
+  ticker      String?
+  tipoActivo  TipoActivo
+  porcentaje  Float
+  template    PortfolioTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+}
+
+model ClientReportStatus {
+  id               String   @id @default(uuid())
+  clientExternalId String   @unique
+  clientName       String
+  lastReportSentAt DateTime?
+  notes            String?
+  updatedAt        DateTime @updatedAt
+}

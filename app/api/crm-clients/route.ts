@@ -19,9 +19,10 @@ export async function GET(req: Request) {
   const asesores = Array.from(new Set(eligibleClients.map((client) => client.asesor).filter(Boolean))).sort();
 
   const statuses = await prisma.clientReportStatus.findMany();
-  const statusByExternalId = new Map<string, ClientReportStatusRow>(
-    statuses.map((status): [string, ClientReportStatusRow] => [status.clientExternalId, status]),
-  );
+  const statusByExternalId = new Map<string, ClientReportStatusRow>();
+  for (const status of statuses as ClientReportStatusRow[]) {
+    statusByExternalId.set(status.clientExternalId, status);
+  }
 
   const rows = eligibleClients
     .map((client) => {

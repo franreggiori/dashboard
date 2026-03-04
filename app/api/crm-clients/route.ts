@@ -1,7 +1,8 @@
-import { NextResponse } from "next/server";
+import { ClientReportStatus } from "@prisma/client";
 import { differenceInCalendarDays } from "date-fns";
-import { prisma } from "@/lib/prisma";
+import { NextResponse } from "next/server";
 import { getClientsCSVData } from "@/lib/csv-data";
+import { prisma } from "@/lib/prisma";
 
 const OVERDUE_DAYS = 183;
 
@@ -16,8 +17,10 @@ export async function GET(req: Request) {
   const eligibleClients = getClientsCSVData().filter((client) => client.patrimonioUSD > threshold);
   const asesores = Array.from(new Set(eligibleClients.map((client) => client.asesor).filter(Boolean))).sort();
 
-  const statuses = await prisma.clientReportStatus.findMany();
-  const statusByExternalId = new Map(statuses.map((status) => [status.clientExternalId, status]));
+  const statuses: ClientReportStatus[] = await prisma.clientReportStatus.findMany();
+  const statusByExternalId = new Map<string, ClientReportStatus>(
+    statuses.map((status: ClientReportStatus): [string, ClientReportStatus] => [status.clientExternalId, status]),
+  );
 
   const rows = eligibleClients
     .map((client) => {

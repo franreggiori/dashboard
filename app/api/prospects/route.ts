@@ -1,5 +1,5 @@
+import { CargadoPor, ProspectEstado } from "@prisma/client";
 import { NextResponse } from "next/server";
-import { ProspectEstado } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 
 const ALLOWED_ESTADOS = new Set<ProspectEstado>([
@@ -11,6 +11,8 @@ const ALLOWED_ESTADOS = new Set<ProspectEstado>([
   "PERDIDO",
 ]);
 
+const ALLOWED_CARGADO_POR = new Set<CargadoPor>(["FRAN", "DANI", "AGUSTINA"]);
+
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
   const estado = searchParams.get("estado") || undefined;
@@ -20,7 +22,7 @@ export async function GET(req: Request) {
   const rows = await prisma.prospect.findMany({
     where: {
       ...(estado && ALLOWED_ESTADOS.has(estado as ProspectEstado) ? { estado: estado as ProspectEstado } : {}),
-      ...(cargadoPor ? { cargadoPor: cargadoPor as any } : {}),
+      ...(cargadoPor && ALLOWED_CARGADO_POR.has(cargadoPor as CargadoPor) ? { cargadoPor: cargadoPor as CargadoPor } : {}),
       ...(q ? { nombre: { contains: q.trim() } } : {}),
     },
     orderBy: [{ updatedAt: "desc" }, { fechaCarga: "desc" }],
@@ -29,10 +31,21 @@ export async function GET(req: Request) {
   return NextResponse.json(rows);
 }
 
+type ProspectPostBody = {
+  nombre?: string;
+  cargadoPor?: CargadoPor;
+  estado?: ProspectEstado;
+  comentario?: string;
+  force?: boolean;
+};
+
 export async function POST(req: Request) {
-  const body = await req.json();
+  const body = (await req.json()) as ProspectPostBody;
   const nombre = String(body.nombre ?? "").trim();
   if (!nombre) return NextResponse.json({ error: "Nombre requerido" }, { status: 400 });
+  if (!body.cargadoPor || !ALLOWED_CARGADO_POR.has(body.cargadoPor)) {
+    return NextResponse.json({ error: "cargadoPor inválido" }, { status: 400 });
+  }
 
   const existing = await prisma.prospect.findFirst({ where: { nombre } });
   if (existing && !body.force) {
@@ -43,7 +56,7 @@ export async function POST(req: Request) {
     data: {
       nombre,
       cargadoPor: body.cargadoPor,
-      estado: ALLOWED_ESTADOS.has(body.estado) ? body.estado : "PENDIENTE",
+      estado: body.estado && ALLOWED_ESTADOS.has(body.estado) ? body.estado : "PENDIENTE",
       comentario: body.comentario ? String(body.comentario).trim() : null,
     },
   });
@@ -51,8 +64,17 @@ export async function POST(req: Request) {
   return NextResponse.json(row);
 }
 
+type ProspectPatchBody = {
+  id?: string;
+  nombre?: string;
+  estado?: ProspectEstado;
+  comentario?: string | null;
+  proximaAccionNota?: string | null;
+  proximaAccionFecha?: string | null;
+};
+
 export async function PATCH(req: Request) {
-  const body = await req.json();
+  const body = (await req.json()) as ProspectPatchBody;
   const id = String(body.id ?? "").trim();
   if (!id) return NextResponse.json({ error: "id requerido" }, { status: 400 });
 

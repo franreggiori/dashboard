@@ -10,7 +10,22 @@ type Quote = {
   marketTime: string | null;
 };
 
-const SYMBOLS = ["SPY", "QQQ", "GC=F"];
+type YahooQuoteRow = {
+  symbol?: string;
+  regularMarketPrice?: number;
+  regularMarketChange?: number;
+  regularMarketChangePercent?: number;
+  currency?: string;
+  regularMarketTime?: number;
+};
+
+type YahooQuoteResponse = {
+  quoteResponse?: {
+    result?: YahooQuoteRow[];
+  };
+};
+
+const SYMBOLS = ["SPY", "QQQ", "GC=F"] as const;
 const NAMES: Record<string, string> = {
   SPY: "SPDR S&P 500 ETF (SPY)",
   QQQ: "Invesco QQQ Trust (QQQ)",
@@ -26,8 +41,8 @@ export async function GET() {
       return NextResponse.json({ error: "No se pudieron obtener cotizaciones" }, { status: 502 });
     }
 
-    const payload = await response.json();
-    const rows = (payload?.quoteResponse?.result ?? []) as any[];
+    const payload = (await response.json()) as YahooQuoteResponse;
+    const rows = payload.quoteResponse?.result ?? [];
 
     const mapped: Quote[] = SYMBOLS.map((symbol) => {
       const row = rows.find((item) => item.symbol === symbol);

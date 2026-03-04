@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import type { CargadoPor, PortfolioItem, PortfolioTemplate, Prospect } from "@prisma/client";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,6 +13,47 @@ type TabKey = "cumples" | "prospects" | "carteras" | "crm" | "mercado";
 type ProspectEstado = "PENDIENTE" | "CONTACTADO" | "EN_SEGUIMIENTO" | "NEGOCIACION" | "CERRADO" | "PERDIDO";
 
 const ESTADOS: ProspectEstado[] = ["PENDIENTE", "CONTACTADO", "EN_SEGUIMIENTO", "NEGOCIACION", "CERRADO", "PERDIDO"];
+
+type BirthdayRow = {
+  externalId: string;
+  nombre: string;
+  asesor: string;
+  telefono: string;
+  patrimonioUSD: number;
+  fechaLabel: string;
+  diasFaltantes: number;
+};
+
+type BirthdaysResponse = { rows: BirthdayRow[]; asesores: string[] };
+
+type ProspectRow = Prospect;
+
+type PortfolioTemplateWithItems = PortfolioTemplate & { items: PortfolioItem[] };
+
+type CRMRow = {
+  externalId: string;
+  nombre: string;
+  asesor: string;
+  patrimonioUSD: number;
+  lastReportSentAt: string | null;
+  daysSinceLastReport: number;
+  estado: "OK" | "VENCIDO";
+  notes: string;
+};
+
+type CRMResponse = { rows: CRMRow[]; asesores: string[]; threshold: number };
+
+type MarketQuote = {
+  symbol: string;
+  name: string;
+  price: number | null;
+  change: number | null;
+  changePercent: number | null;
+  currency: string;
+};
+
+type MarketResponse = { updatedAt: string; quotes: MarketQuote[]; error?: string };
+
 
 export default function Dashboard() {
   const [tab, setTab] = useState<TabKey>("cumples");
@@ -63,13 +105,13 @@ export default function Dashboard() {
 function CumplesTab() {
   const [days, setDays] = useState(6);
   const [asesor, setAsesor] = useState("");
-  const [rows, setRows] = useState<any[]>([]);
+  const [rows, setRows] = useState<BirthdayRow[]>([]);
   const [asesores, setAsesores] = useState<string[]>([]);
 
   useEffect(() => {
     fetch(`/api/birthdays?days=${days}&asesor=${encodeURIComponent(asesor)}`)
       .then((response) => response.json())
-      .then((payload) => {
+      .then((payload: BirthdaysResponse) => {
         setRows(payload.rows ?? []);
         setAsesores(payload.asesores ?? []);
       });
@@ -137,17 +179,17 @@ function CumplesTab() {
 }
 
 function ProspectsTab() {
-  const [rows, setRows] = useState<any[]>([]);
+  const [rows, setRows] = useState<ProspectRow[]>([]);
   const [q, setQ] = useState("");
   const [estado, setEstado] = useState("");
   const [cargadoPor, setCargadoPor] = useState("");
   const [nombre, setNombre] = useState("");
-  const [nuevoPor, setNuevoPor] = useState("FRAN");
-  const [editing, setEditing] = useState<any | null>(null);
+  const [nuevoPor, setNuevoPor] = useState<CargadoPor>("FRAN");
+  const [editing, setEditing] = useState<ProspectRow | null>(null);
 
   const load = () => {
     fetch(`/api/prospects?estado=${estado}&cargadoPor=${cargadoPor}&q=${encodeURIComponent(q)}`)
-      .then((response) => response.json())
+      .then((response) => response.json() as Promise<ProspectRow[]>)
       .then(setRows);
   };
 
@@ -311,16 +353,19 @@ function ProspectsTab() {
 }
 
 function CarterasTab() {
-  const [templates, setTemplates] = useState<any[]>([]);
+  const [templates, setTemplates] = useState<PortfolioTemplateWithItems[]>([]);
   const [tipo, setTipo] = useState("CONSERVADORA");
   const [item, setItem] = useState({ activoNombre: "", ticker: "", tipoActivo: "RENTA_FIJA", porcentaje: 0 });
 
-  const load = () => fetch("/api/portfolios").then((response) => response.json()).then(setTemplates);
+  const load = () =>
+    fetch("/api/portfolios")
+      .then((response) => response.json() as Promise<PortfolioTemplateWithItems[]>)
+      .then(setTemplates);
   useEffect(load, []);
 
   const currentTemplate = useMemo(() => templates.find((template) => template.tipo === tipo), [templates, tipo]);
   const totalPercent = useMemo(
-    () => (currentTemplate?.items || []).reduce((acc: number, current: any) => acc + Number(current.porcentaje), 0),
+    () => (currentTemplate?.items || []).reduce((acc: number, current) => acc + Number(current.porcentaje), 0),
     [currentTemplate],
   );
 
@@ -392,7 +437,7 @@ function CarterasTab() {
               </tr>
             </thead>
             <tbody>
-              {currentTemplate.items.map((portfolioItem: any) => (
+              {currentTemplate.items.map((portfolioItem) => (
                 <tr className="border-t" key={portfolioItem.id}>
                   <td>{portfolioItem.activoNombre}</td>
                   <td>{portfolioItem.ticker || "-"}</td>
@@ -427,14 +472,14 @@ function CrmTab() {
   const [asesor, setAsesor] = useState("");
   const [onlyVencidos, setOnlyVencidos] = useState(false);
   const [q, setQ] = useState("");
-  const [rows, setRows] = useState<any[]>([]);
+  const [rows, setRows] = useState<CRMRow[]>([]);
   const [asesores, setAsesores] = useState<string[]>([]);
-  const [editing, setEditing] = useState<any | null>(null);
+  const [editing, setEditing] = useState<CRMRow | null>(null);
 
   const load = () => {
     fetch(`/api/crm-clients?threshold=${threshold}&asesor=${encodeURIComponent(asesor)}&onlyVencidos=${onlyVencidos ? 1 : 0}&q=${encodeURIComponent(q)}`)
       .then((response) => response.json())
-      .then((payload) => {
+      .then((payload: CRMResponse) => {
         setRows(payload.rows ?? []);
         setAsesores(payload.asesores ?? []);
         if (typeof payload.threshold === "number") setThreshold(payload.threshold);
@@ -564,7 +609,7 @@ function CrmTab() {
 
 
 function MercadoTab() {
-  const [quotes, setQuotes] = useState<any[]>([]);
+  const [quotes, setQuotes] = useState<MarketQuote[]>([]);
   const [updatedAt, setUpdatedAt] = useState<string>("");
   const [error, setError] = useState("");
 
@@ -572,7 +617,7 @@ function MercadoTab() {
     try {
       setError("");
       const response = await fetch("/api/market-quotes", { cache: "no-store" });
-      const payload = await response.json();
+      const payload = (await response.json()) as MarketResponse;
       if (!response.ok) {
         setError(payload?.error || "No se pudieron cargar las cotizaciones.");
         return;

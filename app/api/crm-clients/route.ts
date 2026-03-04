@@ -3,32 +3,46 @@ import { differenceInCalendarDays } from "date-fns";
 import { prisma } from "@/lib/prisma";
 import { getClientsCSVData } from "@/lib/csv-data";
 
+const OVERDUE_DAYS = 183;
+
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
-  const threshold = Number(searchParams.get("threshold") || "30000");
+  const thresholdRaw = Number(searchParams.get("threshold") || "30000");
+  const threshold = Number.isFinite(thresholdRaw) ? Math.max(20000, Math.min(100000, thresholdRaw)) : 30000;
   const asesor = searchParams.get("asesor") || "";
   const onlyVencidos = searchParams.get("onlyVencidos") === "1";
   const q = (searchParams.get("q") || "").toLowerCase();
 
-  const clients = getClientsCSVData().filter((c) => c.patrimonioUSD > threshold);
-  const statuses = await prisma.clientReportStatus.findMany();
-  const map = new Map(statuses.map((s) => [s.clientExternalId, s]));
+  const eligibleClients = getClientsCSVData().filter((client) => client.patrimonioUSD > threshold);
+  const asesores = Array.from(new Set(eligibleClients.map((client) => client.asesor).filter(Boolean))).sort();
 
-  const merged = clients
-    .map((c) => {
-      const st = map.get(c.externalId);
-      const days = st?.lastReportSentAt ? differenceInCalendarDays(new Date(), st.lastReportSentAt) : 9999;
-      const vencido = !st?.lastReportSentAt || days > 183;
-      return { ...c, lastReportSentAt: st?.lastReportSentAt || null, notes: st?.notes || "", days, estado: vencido ? "VENCIDO" : "OK" };
+  const statuses = await prisma.clientReportStatus.findMany();
+  const statusByExternalId = new Map(statuses.map((status) => [status.clientExternalId, status]));
+
+  const rows = eligibleClients
+    .map((client) => {
+      const status = statusByExternalId.get(client.externalId);
+      const daysSinceLastReport = status?.lastReportSentAt
+        ? differenceInCalendarDays(new Date(), new Date(status.lastReportSentAt))
+        : OVERDUE_DAYS + 1;
+      const estado = !status?.lastReportSentAt || daysSinceLastReport > OVERDUE_DAYS ? "VENCIDO" : "OK";
+
+      return {
+        ...client,
+        lastReportSentAt: status?.lastReportSentAt ?? null,
+        notes: status?.notes ?? "",
+        daysSinceLastReport,
+        estado,
+      };
     })
-    .filter((c) => (asesor ? c.asesor === asesor : true))
-    .filter((c) => (onlyVencidos ? c.estado === "VENCIDO" : true))
-    .filter((c) => c.nombre.toLowerCase().includes(q))
+    .filter((row) => (asesor ? row.asesor === asesor : true))
+    .filter((row) => (onlyVencidos ? row.estado === "VENCIDO" : true))
+    .filter((row) => row.nombre.toLowerCase().includes(q))
     .sort((a, b) => {
       if (a.estado !== b.estado) return a.estado === "VENCIDO" ? -1 : 1;
-      if (a.days !== b.days) return b.days - a.days;
+      if (a.daysSinceLastReport !== b.daysSinceLastReport) return b.daysSinceLastReport - a.daysSinceLastReport;
       return b.patrimonioUSD - a.patrimonioUSD;
     });
 
-  return NextResponse.json(merged);
+  return NextResponse.json({ rows, asesores, threshold });
 }

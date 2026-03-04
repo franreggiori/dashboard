@@ -7,12 +7,19 @@ type Row = Record<string, string | undefined>;
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 const DEFAULT_BIRTHDAY_FILES = [
+  // Estructura principal del repo
+  path.join(process.cwd(), "data", "cumpleaños.csv"),
+  path.join(process.cwd(), "data", "cumpleanos.csv"),
+  // Compatibilidad con nombres anteriores
   "/mnt/data/cumpleaños.xlsx.csv",
   "/mnt/data/cumpleaños.xlsx.csv",
   path.join(process.cwd(), "data", "cumpleaños.xlsx.csv"),
   path.join(process.cwd(), "data", "cumpleaños.xlsx.csv"),
 ];
 const DEFAULT_CLIENT_FILES = [
+  // Estructura principal del repo
+  path.join(process.cwd(), "data", "clientes.csv"),
+  // Compatibilidad con nombres anteriores
   "/mnt/data/inviu-listado-clientes.xlsx - -listado-clientes-cval.csv",
   path.join(process.cwd(), "data", "inviu-listado-clientes.xlsx - -listado-clientes-cval.csv"),
 ];

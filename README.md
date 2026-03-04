@@ -16,8 +16,8 @@ DATABASE_PROVIDER="sqlite"
 DATABASE_URL="file:./dev.db"
 
 # Opcional: override de rutas CSV
-# BIRTHDAYS_CSV_PATH="/mnt/data/cumpleaños.xlsx.csv"
-# CLIENTS_CSV_PATH="/mnt/data/inviu-listado-clientes.xlsx - -listado-clientes-cval.csv"
+# BIRTHDAYS_CSV_PATH="./data/cumpleaños.csv"
+# CLIENTS_CSV_PATH="./data/clientes.csv"
 ```
 
 ### Producción en Vercel (Postgres)
@@ -51,10 +51,12 @@ Abrir: `http://localhost:3000`
 - No subas `dev.db` al repo.
 
 ## Notas de CSV
-La app busca por defecto:
-- `/mnt/data/cumpleaños.xlsx.csv`
-- `/mnt/data/inviu-listado-clientes.xlsx - -listado-clientes-cval.csv`
+La app busca por defecto (en este repo):
+- `data/cumpleaños.csv`
+- `data/clientes.csv`
 
-Si no están ahí, podés setear `BIRTHDAYS_CSV_PATH` y `CLIENTS_CSV_PATH`.
+Además mantiene compatibilidad con los nombres viejos en `/mnt/data/...`.
+
+Si necesitás otra ubicación, seteá `BIRTHDAYS_CSV_PATH` y `CLIENTS_CSV_PATH`.
 
 El parseo se hace server-side, normaliza headers (trim + case-insensitive + sin acentos), ignora columnas basura y cachea el resultado por 24h.

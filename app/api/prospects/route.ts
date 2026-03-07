@@ -1,6 +1,8 @@
-import { CargadoPor, ProspectEstado } from "@prisma/client";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+
+type CargadoPor = "FRAN" | "DANI" | "AGUSTINA";
+type ProspectEstado = "PENDIENTE" | "CONTACTADO" | "EN_SEGUIMIENTO" | "NEGOCIACION" | "CERRADO" | "PERDIDO";
 
 const ALLOWED_ESTADOS = new Set<ProspectEstado>([
   "PENDIENTE",
@@ -80,7 +82,7 @@ export async function PATCH(req: Request) {
 
   const data: Record<string, unknown> = {};
   if (typeof body.nombre === "string") data.nombre = body.nombre.trim();
-  if (typeof body.estado === "string" && ALLOWED_ESTADOS.has(body.estado as ProspectEstado)) data.estado = body.estado;
+  if (typeof body.estado === "string" && ALLOWED_ESTADOS.has(body.estado)) data.estado = body.estado;
   if ("comentario" in body) data.comentario = body.comentario ? String(body.comentario).trim() : null;
   if ("proximaAccionNota" in body) data.proximaAccionNota = body.proximaAccionNota ? String(body.proximaAccionNota).trim() : null;
   if ("proximaAccionFecha" in body) data.proximaAccionFecha = body.proximaAccionFecha ? new Date(body.proximaAccionFecha) : null;

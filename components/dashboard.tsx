@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import type { CargadoPor, PortfolioItem, PortfolioTemplate, Prospect } from "@prisma/client";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,6 +13,36 @@ type ProspectEstado = "PENDIENTE" | "CONTACTADO" | "EN_SEGUIMIENTO" | "NEGOCIACI
 
 const ESTADOS: ProspectEstado[] = ["PENDIENTE", "CONTACTADO", "EN_SEGUIMIENTO", "NEGOCIACION", "CERRADO", "PERDIDO"];
 
+type CargadoPor = "FRAN" | "DANI" | "AGUSTINA";
+
+type ProspectRow = {
+  id: string;
+  nombre: string;
+  cargadoPor: CargadoPor;
+  fechaCarga: string;
+  estado: ProspectEstado;
+  comentario: string | null;
+  proximaAccionFecha: string | null;
+  proximaAccionNota: string | null;
+  updatedAt: string;
+};
+
+type PortfolioItemRow = {
+  id: string;
+  templateId: string;
+  activoNombre: string;
+  ticker: string | null;
+  tipoActivo: "RENTA_FIJA" | "RENTA_VARIABLE";
+  porcentaje: number;
+};
+
+type PortfolioTemplateWithItems = {
+  id: string;
+  tipo: "CONSERVADORA" | "MODERADA" | "AGRESIVA";
+  descripcion: string | null;
+  items: PortfolioItemRow[];
+};
+
 type BirthdayRow = {
   externalId: string;
   nombre: string;
@@ -25,10 +54,6 @@ type BirthdayRow = {
 };
 
 type BirthdaysResponse = { rows: BirthdayRow[]; asesores: string[] };
-
-type ProspectRow = Prospect;
-
-type PortfolioTemplateWithItems = PortfolioTemplate & { items: PortfolioItem[] };
 
 type CRMRow = {
   externalId: string;
@@ -61,7 +86,7 @@ export default function Dashboard() {
   return (
     <div className="min-h-screen flex">
       <aside className="w-64 border-r p-4 bg-muted/20 space-y-2">
-        <h1 className="font-bold text-lg mb-4">Dashboard Asesoría</h1>
+        <h1 className="font-bold text-lg mb-4">Dashboard Negocio</h1>
         {[
           ["cumples", "Cumpleaños"],
           ["prospects", "Prospects"],

@@ -1,9 +1,10 @@
 import { NextResponse } from "next/server";
-import { PortfolioTipo } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 
+type PortfolioTipoValue = "CONSERVADORA" | "MODERADA" | "AGRESIVA";
+
 async function ensureTemplates() {
-  for (const tipo of ["CONSERVADORA", "MODERADA", "AGRESIVA"] as PortfolioTipo[]) {
+  for (const tipo of ["CONSERVADORA", "MODERADA", "AGRESIVA"] as const satisfies PortfolioTipoValue[]) {
     await prisma.portfolioTemplate.upsert({ where: { tipo }, update: {}, create: { tipo } });
   }
 }

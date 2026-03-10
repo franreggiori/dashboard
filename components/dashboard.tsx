@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
+import { AÑOS, RETORNOS, ASSET_DESCRIPTIONS, type Año } from "@/lib/portfolio-data";
 import type { CargadoPor, PortfolioItem, PortfolioTemplate, Prospect } from "@prisma/client";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -377,22 +378,6 @@ const ACTIVOS_PREDEFINIDOS = [
   { label: "BARINGS GLOBAL SECURES BONDS",         ticker: "",      tipoActivo: "RENTA_FIJA"     },
   { label: "GOLD",                                 ticker: "GC=F",  tipoActivo: "RENTA_VARIABLE" },
 ];
-
-const AÑOS = [2020, 2021, 2022, 2023, 2024] as const;
-type Año = typeof AÑOS[number];
-
-const RETORNOS: Record<string, Record<Año, number>> = {
-  "SPY":                                  { 2020: 18.33,  2021: 28.73,  2022: -18.18, 2023: 26.17,  2024: 24.89  },
-  "QQQ":                                  { 2020: 48.60,  2021: 27.42,  2022: -32.58, 2023: 54.85,  2024: 25.58  },
-  "EEM (ETF Emerging Markets)":           { 2020: 18.31,  2021: -4.59,  2022: -20.09, 2023: 7.02,   2024: 7.96   },
-  "Neuberguer Global Equity MEGATRENDS":  { 2020: 22.50,  2021: 14.80,  2022: -24.20, 2023: 23.50,  2024: 17.80  },
-  "GAINVEST RENTA FIJA DOLAR":            { 2020: 5.70,   2021: 5.70,   2022: 5.70,   2023: 5.70,   2024: 5.70   },
-  "OBLIGACIONES NEGOCIABLES":             { 2020: 6.00,   2021: 6.00,   2022: 6.00,   2023: 6.00,   2024: 6.00   },
-  "PIMCO INCOME FUND":                    { 2020: 4.50,   2021: 1.80,   2022: -3.20,  2023: 7.10,   2024: 6.50   },
-  "BARINGS PRIVATE CREDIT":               { 2020: 7.20,   2021: 9.80,   2022: 10.50,  2023: 12.10,  2024: 11.50  },
-  "BARINGS GLOBAL SECURES BONDS":         { 2020: 6.80,   2021: 4.90,   2022: -8.20,  2023: 10.50,  2024: 9.20   },
-  "GOLD":                                 { 2020: 24.81,  2021: -4.15,  2022: -0.77,  2023: 12.69,  2024: 26.66  },
-};
 
 const FONDOS_ESTIMADOS = new Set([
   "Neuberguer Global Equity MEGATRENDS",

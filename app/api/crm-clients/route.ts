@@ -10,7 +10,7 @@ type ClientReportStatusRow = Awaited<ReturnType<typeof prisma.clientReportStatus
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
   const thresholdRaw = Number(searchParams.get("threshold") || "30000");
-  const threshold = Number.isFinite(thresholdRaw) ? Math.max(20000, Math.min(100000, thresholdRaw)) : 30000;
+  const threshold = Number.isFinite(thresholdRaw) ? Math.max(30000, Math.min(100000, thresholdRaw)) : 30000;
   const asesor = searchParams.get("asesor") || "";
   const onlyVencidos = searchParams.get("onlyVencidos") === "1";
   const q = (searchParams.get("q") || "").toLowerCase();

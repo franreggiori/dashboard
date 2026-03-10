@@ -72,10 +72,11 @@ function pickFirst(row: Record<string, string>, aliases: string[]) {
   return "";
 }
 
-function findContaining(row: Record<string, string>, aliases: string[]) {
+function findContaining(row: Record<string, string>, aliases: string[], exclude: string[] = []) {
   const entries = Object.entries(row);
   for (const [key, value] of entries) {
     if (!value) continue;
+    if (exclude.some((ex) => key.includes(normalizeHeader(ex)))) continue;
     if (aliases.some((alias) => key.includes(normalizeHeader(alias)))) return value;
   }
   return "";
@@ -148,7 +149,7 @@ export function getBirthdaysData() {
       const asesor = pickFirst(row, ["asesor"]);
       const telefono = pickFirst(row, ["telefono", "telefono celular", "celular", "cel"]);
       const birthRaw = pickFirst(row, ["fecha de nacimiento", "cumpleanos", "cumpleanos 1"]);
-      const patrimonioUSD = parseMoneyToNumber(findContaining(row, ["patrimonio usd", "patrimonio", "patrimonio en usd"]));
+      const patrimonioUSD = parseMoneyToNumber(findContaining(row, ["patrimonio cierre usd", "patrimonio usd", "patrimonio en usd", "patrimonio"], ["ars"]));
       const birthDate = parseDateFlexible(birthRaw);
 
       if (!nombre || !birthDate) return null;
@@ -201,7 +202,7 @@ export function getClientsCSVData() {
       const asesor = pickFirst(row, ["asesor", "advisor"]);
       const telefono = pickFirst(row, ["telefono", "celular", "cel"]);
       const email = pickFirst(row, ["email", "mail", "correo"]);
-      const patrimonioUSD = parseMoneyToNumber(findContaining(row, ["patrimonio usd", "patrimonio en usd", "patrimonio"]));
+      const patrimonioUSD = parseMoneyToNumber(findContaining(row, ["patrimonio cierre usd", "patrimonio usd", "patrimonio en usd", "patrimonio"], ["ars"]));
 
       return {
         externalId,

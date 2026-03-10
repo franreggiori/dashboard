@@ -226,7 +226,7 @@ function ProspectsTab() {
         <h3 className="font-medium">Nuevo prospect</h3>
         <div className="grid grid-cols-3 gap-2">
           <Input placeholder="Nombre" value={nombre} onChange={(event) => setNombre(event.target.value)} />
-          <Select value={nuevoPor} onChange={(event) => setNuevoPor(event.target.value)}>
+          <Select value={nuevoPor} onChange={(event) => setNuevoPor(event.target.value as CargadoPor)}>
             <option>FRAN</option>
             <option>DANI</option>
             <option>AGUSTINA</option>

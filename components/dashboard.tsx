@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import type { CargadoPor, PortfolioItem, PortfolioTemplate, Prospect } from "@prisma/client";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -403,8 +404,6 @@ function fmt(n: number) {
 }
 
 function SimulacionHistorica({ items }: { items: { activoNombre: string; porcentaje: number }[] }) {
-  const { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } = require("recharts") as typeof import("recharts");
-
   const retornos = items.filter((i) => RETORNOS[i.activoNombre]);
 
   const retornosCartera: Record<Año, number> = { 2020: 0, 2021: 0, 2022: 0, 2023: 0, 2024: 0 };

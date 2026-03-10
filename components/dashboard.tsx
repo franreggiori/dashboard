@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 
-type TabKey = "cumples" | "prospects" | "carteras" | "crm" | "mercado" | "instrumentos";
+type TabKey = "cumples" | "prospects" | "carteras" | "crm" | "mercado" | "instrumentos" | "noticias";
 
 type ProspectEstado = "PENDIENTE" | "CONTACTADO" | "EN_SEGUIMIENTO" | "NEGOCIACION" | "CERRADO" | "PERDIDO";
 
@@ -63,6 +63,7 @@ const NAV_ITEMS: [TabKey, string][] = [
   ["crm", "📁 CRM Informes"],
   ["mercado", "📈 Mercado"],
   ["instrumentos", "🏦 Instrumentos"],
+  ["noticias", "📰 Noticias"],
 ];
 
 export default function Dashboard() {
@@ -100,6 +101,7 @@ export default function Dashboard() {
         {tab === "crm" && <CrmTab />}
         {tab === "mercado" && <MercadoTab />}
         {tab === "instrumentos" && <InstrumentosTab />}
+        {tab === "noticias" && <NoticiasTab />}
       </main>
     </div>
   );
@@ -892,4 +894,69 @@ function InstrumentosTab() {
       </table>
     </section>
   );
+}
+
+type NewsItem = { title: string; source: string; link: string; pubDate: string };
+type NewsResponse = { items: NewsItem[]; updatedAt: string; error?: string };
+
+function NoticiasTab() {
+  const [items, setItems] = useState<NewsItem[]>([]);
+  const [updatedAt, setUpdatedAt] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  const load = async () => {
+    setLoading(true);
+    setError("");
+    try {
+      const res = await fetch("/api/news");
+      const data = (await res.json()) as NewsResponse;
+      if (data.error) { setError(data.error); return; }
+      setItems(data.items ?? []);
+      setUpdatedAt(data.updatedAt ?? "");
+    } catch {
+      setError("No se pudieron cargar las noticias.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => { load(); }, []);
+
+  return (
+    <section className="space-y-4 max-w-3xl">
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-xl font-bold text-slate-800">Noticias del mercado</h2>
+          {updatedAt && <p className="text-xs text-slate-400 mt-0.5">Actualizado: {new Date(updatedAt).toLocaleString("es-AR")}</p>}
+        </div>
+        <Button variant="outline" onClick={load}>Actualizar</Button>
+      </div>
+
+      {error && <p className="text-sm text-red-600 bg-red-50 rounded-lg px-3 py-2">{error}</p>}
+      {loading && <p className="text-sm text-slate-400">Cargando noticias...</p>}
+
+      <div className="space-y-3">
+        {items.map((item, i) => (
+          <a
+            key={i}
+            href={item.link}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="block bg-white border border-slate-200 rounded-xl p-4 shadow-sm hover:border-blue-300 hover:shadow-md transition-all"
+          >
+            <div className="flex items-start justify-between gap-3">
+              <p className="font-medium text-slate-800 leading-snug">{item.title}</p>
+              <span className="text-blue-500 text-lg shrink-0">↗</span>
+            </div>
+            <div className="flex gap-3 mt-2 text-xs text-slate-400">
+              {item.source && <span className="font-medium text-slate-500">{item.source}</span>}
+              {item.pubDate && <span>{new Date(item.pubDate).toLocaleString("es-AR", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })}</span>}
+            </div>
+          </a>
+        ))}
+      </div>
+    </section>
+  );
+}
 }

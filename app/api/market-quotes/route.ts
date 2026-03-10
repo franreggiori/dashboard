@@ -10,27 +10,22 @@ type Quote = {
   marketTime: string | null;
 };
 
-type YahooQuoteRow = {
-  symbol?: string;
+type YahooChartMeta = {
   regularMarketPrice?: number;
-  regularMarketChange?: number;
-  regularMarketChangePercent?: number;
+  previousClose?: number;
+  chartPreviousClose?: number;
   currency?: string;
   regularMarketTime?: number;
 };
 
-type YahooQuoteResponse = {
-  quoteResponse?: {
-    result?: YahooQuoteRow[];
+type YahooChartResponse = {
+  chart?: {
+    result?: Array<{ meta?: YahooChartMeta }>;
+    error?: { description?: string };
   };
 };
 
-const SYMBOLS = [
-  "SPY", "QQQ", "IWM", "GC=F", "FXI", "EEM",
-  "AAPL", "MSFT", "GOOGL", "AMZN", "META", "NVDA", "TSLA",
-] as const;
-
-const NAMES: Record<string, string> = {
+const SYMBOLS: Record<string, string> = {
   SPY: "S&P 500 ETF",
   QQQ: "Nasdaq 100 ETF",
   IWM: "Russell 2000 ETF",
@@ -46,39 +41,41 @@ const NAMES: Record<string, string> = {
   TSLA: "Tesla",
 };
 
+const HEADERS = {
+  "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+  "Accept": "application/json",
+  "Accept-Language": "en-US,en;q=0.9",
+};
+
+async function fetchQuote(symbol: string): Promise<Quote> {
+  const url = `https://query2.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?interval=1d&range=2d`;
+  try {
+    const response = await fetch(url, { headers: HEADERS, next: { revalidate: 30 } });
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    const payload = (await response.json()) as YahooChartResponse;
+    const meta = payload.chart?.result?.[0]?.meta;
+    const price = meta?.regularMarketPrice ?? null;
+    const prevClose = meta?.previousClose ?? meta?.chartPreviousClose ?? null;
+    const change = price !== null && prevClose !== null ? price - prevClose : null;
+    const changePercent = change !== null && prevClose !== null && prevClose !== 0 ? (change / prevClose) * 100 : null;
+    return {
+      symbol,
+      name: SYMBOLS[symbol] ?? symbol,
+      price,
+      change,
+      changePercent,
+      currency: meta?.currency ?? "USD",
+      marketTime: meta?.regularMarketTime ? new Date(meta.regularMarketTime * 1000).toISOString() : null,
+    };
+  } catch {
+    return { symbol, name: SYMBOLS[symbol] ?? symbol, price: null, change: null, changePercent: null, currency: "USD", marketTime: null };
+  }
+}
+
 export async function GET() {
   try {
-    const url = `https://query1.finance.yahoo.com/v7/finance/quote?symbols=${encodeURIComponent(SYMBOLS.join(","))}`;
-    const response = await fetch(url, {
-      headers: {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-        "Accept": "application/json",
-        "Accept-Language": "en-US,en;q=0.9",
-      },
-      next: { revalidate: 30 },
-    });
-
-    if (!response.ok) {
-      return NextResponse.json({ error: "No se pudieron obtener cotizaciones" }, { status: 502 });
-    }
-
-    const payload = (await response.json()) as YahooQuoteResponse;
-    const rows = payload.quoteResponse?.result ?? [];
-
-    const mapped: Quote[] = SYMBOLS.map((symbol) => {
-      const row = rows.find((item) => item.symbol === symbol);
-      return {
-        symbol,
-        name: NAMES[symbol] ?? symbol,
-        price: typeof row?.regularMarketPrice === "number" ? row.regularMarketPrice : null,
-        change: typeof row?.regularMarketChange === "number" ? row.regularMarketChange : null,
-        changePercent: typeof row?.regularMarketChangePercent === "number" ? row.regularMarketChangePercent : null,
-        currency: row?.currency || "USD",
-        marketTime: row?.regularMarketTime ? new Date(row.regularMarketTime * 1000).toISOString() : null,
-      };
-    });
-
-    return NextResponse.json({ updatedAt: new Date().toISOString(), quotes: mapped });
+    const quotes = await Promise.all(Object.keys(SYMBOLS).map(fetchQuote));
+    return NextResponse.json({ updatedAt: new Date().toISOString(), quotes });
   } catch {
     return NextResponse.json({ error: "Error inesperado consultando mercado" }, { status: 500 });
   }

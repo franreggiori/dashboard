@@ -12,6 +12,8 @@ type Quote = {
 
 type YahooChartMeta = {
   regularMarketPrice?: number;
+  regularMarketChange?: number;
+  regularMarketChangePercent?: number;
   previousClose?: number;
   chartPreviousClose?: number;
   currency?: string;
@@ -55,9 +57,8 @@ async function fetchQuote(symbol: string): Promise<Quote> {
     const payload = (await response.json()) as YahooChartResponse;
     const meta = payload.chart?.result?.[0]?.meta;
     const price = meta?.regularMarketPrice ?? null;
-    const prevClose = meta?.previousClose ?? meta?.chartPreviousClose ?? null;
-    const change = price !== null && prevClose !== null ? price - prevClose : null;
-    const changePercent = change !== null && prevClose !== null && prevClose !== 0 ? (change / prevClose) * 100 : null;
+    const change = meta?.regularMarketChange ?? null;
+    const changePercent = meta?.regularMarketChangePercent ?? null;
     return {
       symbol,
       name: SYMBOLS[symbol] ?? symbol,

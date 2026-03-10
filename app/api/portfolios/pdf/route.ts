@@ -270,7 +270,6 @@ export async function GET(req: Request) {
     const chartPadL = 58, chartPadR = 10, chartPadT = 10, chartPadB = 30;
     const plotW = chartW - chartPadL - chartPadR;
     const plotH = chartH - chartPadT - chartPadB;
-    const chartTop = pm.y - chartPadT;
     const chartBottom = pm.y - chartH + chartPadB;
 
     const toX = (i: number) => ML + chartPadL + (i / (values.length - 1)) * plotW;

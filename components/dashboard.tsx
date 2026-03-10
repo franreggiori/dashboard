@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
-import { AÑOS, RETORNOS, ASSET_DESCRIPTIONS, type Año } from "@/lib/portfolio-data";
+import { AÑOS, RETORNOS, type Año } from "@/lib/portfolio-data";
 import type { CargadoPor, PortfolioItem, PortfolioTemplate, Prospect } from "@prisma/client";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";

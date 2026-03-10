@@ -120,7 +120,7 @@ export async function GET(req: Request) {
   pm.rect(0, H - 90, W, 90, NAVY);
   pm.rect(0, H - 93, W, 3, GOLD);
 
-  pm.page.drawText("WEALTH MANAGEMENT", { x: ML, y: H - 28, size: 8, font: pm.fontBold, color: rgb(0.6, 0.68, 0.82), characterSpacing: 2.5 });
+  pm.page.drawText("WEALTH MANAGEMENT", { x: ML, y: H - 28, size: 8, font: pm.fontBold, color: rgb(0.6, 0.68, 0.82) });
   pm.page.drawText(`Propuesta de Inversion — ${tipo}`, { x: ML, y: H - 50, size: 20, font: pm.fontBold, color: WHITE });
   pm.page.drawText(`Fecha: ${new Date().toLocaleDateString("es-AR", { day: "2-digit", month: "long", year: "numeric" })}`, { x: ML, y: H - 72, size: 9, font: pm.font, color: rgb(0.65, 0.72, 0.85) });
 
@@ -128,7 +128,7 @@ export async function GET(req: Request) {
 
   // ── COMPOSICIÓN ──────────────────────────────────────────────────────────
   pm.rect(ML, pm.y - 14, CONTENT_W, 20, LGRAY);
-  pm.page.drawText("COMPOSICIÓN DE LA CARTERA", { x: ML + 6, y: pm.y - 10, size: 8.5, font: pm.fontBold, color: NAVY, characterSpacing: 1 });
+  pm.page.drawText("COMPOSICIÓN DE LA CARTERA", { x: ML + 6, y: pm.y - 10, size: 8.5, font: pm.fontBold, color: NAVY });
   pm.y -= 24;
   pm.gap(6);
 
@@ -162,7 +162,7 @@ export async function GET(req: Request) {
   // ── ACTIVOS TABLE ─────────────────────────────────────────────────────────
   pm.ensure(40 + items.length * 20);
   pm.rect(ML, pm.y - 14, CONTENT_W, 20, NAVY);
-  pm.page.drawText("ACTIVOS DE LA CARTERA", { x: ML + 6, y: pm.y - 10, size: 8.5, font: pm.fontBold, color: WHITE, characterSpacing: 1 });
+  pm.page.drawText("ACTIVOS DE LA CARTERA", { x: ML + 6, y: pm.y - 10, size: 8.5, font: pm.fontBold, color: WHITE });
   pm.y -= 20;
 
   const colW = [220, 80, 100, 60] as const;
@@ -200,7 +200,7 @@ export async function GET(req: Request) {
     pm.ensure(40 + (simItems.length + 2) * 20);
 
     pm.rect(ML, pm.y - 14, CONTENT_W, 20, NAVY);
-    pm.page.drawText("SIMULACION HISTORICA 2020 - 2024", { x: ML + 6, y: pm.y - 10, size: 8.5, font: pm.fontBold, color: WHITE, characterSpacing: 1 });
+    pm.page.drawText("SIMULACION HISTORICA 2020 - 2024", { x: ML + 6, y: pm.y - 10, size: 8.5, font: pm.fontBold, color: WHITE });
     pm.y -= 20;
 
     // Header row
@@ -250,7 +250,7 @@ export async function GET(req: Request) {
     pm.ensure(chartH + 50);
 
     pm.rect(ML, pm.y - 14, CONTENT_W, 20, NAVY);
-    pm.page.drawText("EVOLUCION DE USD 100.000 INVERTIDOS", { x: ML + 6, y: pm.y - 10, size: 8.5, font: pm.fontBold, color: WHITE, characterSpacing: 1 });
+    pm.page.drawText("EVOLUCION DE USD 100.000 INVERTIDOS", { x: ML + 6, y: pm.y - 10, size: 8.5, font: pm.fontBold, color: WHITE });
     pm.y -= 22;
 
     // Background
@@ -323,7 +323,7 @@ export async function GET(req: Request) {
   // ── ASSET DESCRIPTIONS ────────────────────────────────────────────────────
   pm.ensure(30);
   pm.rect(ML, pm.y - 14, CONTENT_W, 20, NAVY);
-  pm.page.drawText("DESCRIPCION DE LOS INSTRUMENTOS", { x: ML + 6, y: pm.y - 10, size: 8.5, font: pm.fontBold, color: WHITE, characterSpacing: 1 });
+  pm.page.drawText("DESCRIPCION DE LOS INSTRUMENTOS", { x: ML + 6, y: pm.y - 10, size: 8.5, font: pm.fontBold, color: WHITE });
   pm.y -= 24;
 
   for (const item of items) {

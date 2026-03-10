@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 
-type TabKey = "cumples" | "prospects" | "carteras" | "crm" | "mercado";
+type TabKey = "cumples" | "prospects" | "carteras" | "crm" | "mercado" | "instrumentos";
 
 type ProspectEstado = "PENDIENTE" | "CONTACTADO" | "EN_SEGUIMIENTO" | "NEGOCIACION" | "CERRADO" | "PERDIDO";
 
@@ -61,6 +61,7 @@ const NAV_ITEMS: [TabKey, string][] = [
   ["carteras", "📊 Carteras"],
   ["crm", "📁 CRM Informes"],
   ["mercado", "📈 Mercado"],
+  ["instrumentos", "🏦 Instrumentos"],
 ];
 
 export default function Dashboard() {
@@ -97,6 +98,7 @@ export default function Dashboard() {
         {tab === "carteras" && <CarterasTab />}
         {tab === "crm" && <CrmTab />}
         {tab === "mercado" && <MercadoTab />}
+        {tab === "instrumentos" && <InstrumentosTab />}
       </main>
     </div>
   );
@@ -707,6 +709,44 @@ function MercadoTab() {
           {adrs.map((quote) => <QuoteCard key={quote.symbol} quote={quote} />)}
         </div>
       </div>
+    </section>
+  );
+}
+
+const INSTRUMENTOS = [
+  { nombre: "PIMCO LOW DURATION INCOME FUND", isin: "IE00BDT57T44", tipo: "BONOS INV. GRADE" },
+  { nombre: "BARINGS GLOBAL SECURES BONDS", isin: "IE00BK71B469", tipo: "BONOS HIGH YIELD" },
+  { nombre: "BSF Emerging Markets Short Duration Bond Fund A2 USD", isin: "LU1706559744", tipo: "BONOS EMERGENTES" },
+  { nombre: "Barings Private Credit Corporation (BPCC)", isin: "XS2658535799", tipo: "CREDITO PRIVADO" },
+  { nombre: "Neuberguer Global Equity MEGATRENDS", isin: "IE00BFMHRM44", tipo: "ACCIONES" },
+  { nombre: "Man Global Investment", isin: "IE000GDY7UP9", tipo: "BONOS DISCRESIONAL" },
+  { nombre: "Robeco BP US Premium Equities D USD", isin: "LU0226953718", tipo: "EQUITY VALUE" },
+];
+
+function InstrumentosTab() {
+  return (
+    <section className="space-y-4">
+      <h2 className="text-xl font-bold text-slate-800">Instrumentos</h2>
+      <table className="w-full text-sm border rounded-lg overflow-hidden">
+        <thead>
+          <tr className="bg-slate-100 text-slate-600 text-left">
+            <th className="px-3 py-2 font-semibold">Nombre</th>
+            <th className="px-3 py-2 font-semibold">ISIN</th>
+            <th className="px-3 py-2 font-semibold">Tipo</th>
+          </tr>
+        </thead>
+        <tbody>
+          {INSTRUMENTOS.map((inst) => (
+            <tr key={inst.isin} className="border-t hover:bg-slate-50">
+              <td className="px-3 py-2 font-medium">{inst.nombre}</td>
+              <td className="px-3 py-2 font-mono text-slate-500">{inst.isin}</td>
+              <td className="px-3 py-2">
+                <span className="text-xs font-semibold px-2 py-1 rounded-full bg-blue-50 text-blue-700">{inst.tipo}</span>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </section>
   );
 }

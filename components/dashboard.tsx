@@ -185,6 +185,7 @@ function ProspectsTab() {
   const [cargadoPor, setCargadoPor] = useState("");
   const [nombre, setNombre] = useState("");
   const [nuevoPor, setNuevoPor] = useState<CargadoPor>("FRAN");
+  const [nuevoEstado, setNuevoEstado] = useState<ProspectEstado>("PENDIENTE");
   const [editing, setEditing] = useState<ProspectRow | null>(null);
 
   const load = () => {
@@ -204,7 +205,8 @@ function ProspectsTab() {
 
     const response = await fetch("/api/prospects", {
       method: "POST",
-      body: JSON.stringify({ nombre: trimmedName, cargadoPor: nuevoPor, force }),
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ nombre: trimmedName, cargadoPor: nuevoPor, estado: nuevoEstado, force }),
     });
 
     if (response.status === 409) {
@@ -224,12 +226,17 @@ function ProspectsTab() {
 
       <div className="rounded border p-3 space-y-2">
         <h3 className="font-medium">Nuevo prospect</h3>
-        <div className="grid grid-cols-3 gap-2">
+        <div className="grid grid-cols-4 gap-2">
           <Input placeholder="Nombre" value={nombre} onChange={(event) => setNombre(event.target.value)} />
           <Select value={nuevoPor} onChange={(event) => setNuevoPor(event.target.value as CargadoPor)}>
             <option>FRAN</option>
             <option>DANI</option>
             <option>AGUSTINA</option>
+          </Select>
+          <Select value={nuevoEstado} onChange={(event) => setNuevoEstado(event.target.value as ProspectEstado)}>
+            {ESTADOS.map((value) => (
+              <option key={value}>{value}</option>
+            ))}
           </Select>
           <Button onClick={() => createProspect()}>Agregar</Button>
         </div>
@@ -337,6 +344,7 @@ function ProspectsTab() {
               onClick={async () => {
                 await fetch("/api/prospects", {
                   method: "PATCH",
+                  headers: { "Content-Type": "application/json" },
                   body: JSON.stringify(editing),
                 });
                 setEditing(null);

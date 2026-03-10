@@ -393,7 +393,7 @@ function fmt(n: number) {
 function SimulacionHistorica({ items }: { items: { activoNombre: string; porcentaje: number }[] }) {
   const retornos = items.filter((i) => RETORNOS[i.activoNombre]);
 
-  const retornosCartera: Record<Año, number> = { 2020: 0, 2021: 0, 2022: 0, 2023: 0, 2024: 0 };
+  const retornosCartera: Record<Año, number> = { 2021: 0, 2022: 0, 2023: 0, 2024: 0, 2025: 0 };
   for (const año of AÑOS) {
     for (const item of retornos) {
       retornosCartera[año] += (item.porcentaje / 100) * RETORNOS[item.activoNombre][año];
@@ -411,7 +411,7 @@ function SimulacionHistorica({ items }: { items: { activoNombre: string; porcent
 
   return (
     <div className="space-y-4 border rounded-xl p-4 bg-white">
-      <h3 className="font-semibold text-slate-700">Simulación histórica 2020–2024</h3>
+      <h3 className="font-semibold text-slate-700">Simulación histórica 2021–2025</h3>
 
       <table className="w-full text-sm border rounded-lg overflow-hidden">
         <thead>
@@ -594,7 +594,7 @@ function CarterasTab() {
 
           {currentTemplate.items.length > 0 && (
             <Button variant="outline" onClick={() => setVerSimulacion((v) => !v)}>
-              {verSimulacion ? "Ocultar simulación" : "Ver simulación histórica 2020–2024"}
+              {verSimulacion ? "Ocultar simulación" : "Ver simulación histórica 2021–2025"}
             </Button>
           )}
 

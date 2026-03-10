@@ -200,7 +200,7 @@ export async function GET(req: Request) {
     pm.ensure(40 + (simItems.length + 2) * 20);
 
     pm.rect(ML, pm.y - 14, CONTENT_W, 20, NAVY);
-    pm.page.drawText("SIMULACION HISTORICA 2020 - 2024", { x: ML + 6, y: pm.y - 10, size: 8.5, font: pm.fontBold, color: WHITE });
+    pm.page.drawText("SIMULACION HISTORICA 2021 - 2025", { x: ML + 6, y: pm.y - 10, size: 8.5, font: pm.fontBold, color: WHITE });
     pm.y -= 20;
 
     // Header row
@@ -215,7 +215,7 @@ export async function GET(req: Request) {
     pm.y -= 16;
 
     // Portfolio returns
-    const cartRet: Record<Año, number> = { 2020: 0, 2021: 0, 2022: 0, 2023: 0, 2024: 0 };
+    const cartRet: Record<Año, number> = { 2021: 0, 2022: 0, 2023: 0, 2024: 0, 2025: 0 };
 
     simItems.forEach((item, idx) => {
       pm.ensure(20);
@@ -258,7 +258,7 @@ export async function GET(req: Request) {
 
     // Compute values
     let val = 100000;
-    const labels = ["Inicio", "2020", "2021", "2022", "2023", "2024"];
+    const labels = ["Inicio", "2021", "2022", "2023", "2024", "2025"];
     const values = [100000];
     for (const año of AÑOS) {
       val = val * (1 + cartRet[año] / 100);

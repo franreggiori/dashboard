@@ -361,7 +361,7 @@ function CarterasTab() {
     fetch("/api/portfolios")
       .then((response) => response.json() as Promise<PortfolioTemplateWithItems[]>)
       .then(setTemplates);
-  useEffect(load, []);
+  useEffect(() => { load(); }, []);
 
   const currentTemplate = useMemo(() => templates.find((template) => template.tipo === tipo), [templates, tipo]);
   const totalPercent = useMemo(

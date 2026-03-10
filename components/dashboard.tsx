@@ -310,7 +310,7 @@ function ProspectsTab() {
           <div className="bg-white p-4 rounded w-[560px] space-y-2" onClick={(event) => event.stopPropagation()}>
             <h4 className="font-semibold">Editar prospect</h4>
             <Input value={editing.nombre} onChange={(event) => setEditing({ ...editing, nombre: event.target.value })} />
-            <Select value={editing.estado} onChange={(event) => setEditing({ ...editing, estado: event.target.value })}>
+            <Select value={editing.estado} onChange={(event) => setEditing({ ...editing, estado: event.target.value as ProspectEstado })}>
               {ESTADOS.map((value) => (
                 <option key={value}>{value}</option>
               ))}
@@ -325,7 +325,7 @@ function ProspectsTab() {
               <Input
                 type="date"
                 value={editing.proximaAccionFecha ? String(editing.proximaAccionFecha).slice(0, 10) : ""}
-                onChange={(event) => setEditing({ ...editing, proximaAccionFecha: event.target.value || null })}
+                onChange={(event) => setEditing({ ...editing, proximaAccionFecha: event.target.value || null } as unknown as ProspectRow)}
               />
               <Input
                 placeholder="Próxima acción"

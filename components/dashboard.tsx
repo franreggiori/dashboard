@@ -362,10 +362,135 @@ function ProspectsTab() {
   );
 }
 
+const ACTIVOS_PREDEFINIDOS = [
+  { label: "SPY",                                  ticker: "SPY",   tipoActivo: "RENTA_VARIABLE" },
+  { label: "QQQ",                                  ticker: "QQQ",   tipoActivo: "RENTA_VARIABLE" },
+  { label: "EEM (ETF Emerging Markets)",           ticker: "EEM",   tipoActivo: "RENTA_VARIABLE" },
+  { label: "Neuberguer Global Equity MEGATRENDS",  ticker: "",      tipoActivo: "RENTA_VARIABLE" },
+  { label: "GAINVEST RENTA FIJA DOLAR",            ticker: "",      tipoActivo: "RENTA_FIJA"     },
+  { label: "OBLIGACIONES NEGOCIABLES",             ticker: "",      tipoActivo: "RENTA_FIJA"     },
+  { label: "PIMCO INCOME FUND",                    ticker: "",      tipoActivo: "RENTA_FIJA"     },
+  { label: "BARINGS PRIVATE CREDIT",               ticker: "",      tipoActivo: "RENTA_FIJA"     },
+  { label: "BARINGS GLOBAL SECURES BONDS",         ticker: "",      tipoActivo: "RENTA_FIJA"     },
+  { label: "GOLD",                                 ticker: "GC=F",  tipoActivo: "RENTA_VARIABLE" },
+];
+
+const AÑOS = [2020, 2021, 2022, 2023, 2024] as const;
+type Año = typeof AÑOS[number];
+
+const RETORNOS: Record<string, Record<Año, number>> = {
+  "SPY":                                  { 2020: 18.33,  2021: 28.73,  2022: -18.18, 2023: 26.17,  2024: 24.89  },
+  "QQQ":                                  { 2020: 48.60,  2021: 27.42,  2022: -32.58, 2023: 54.85,  2024: 25.58  },
+  "EEM (ETF Emerging Markets)":           { 2020: 18.31,  2021: -4.59,  2022: -20.09, 2023: 7.02,   2024: 7.96   },
+  "Neuberguer Global Equity MEGATRENDS":  { 2020: 22.50,  2021: 14.80,  2022: -24.20, 2023: 23.50,  2024: 17.80  },
+  "GAINVEST RENTA FIJA DOLAR":            { 2020: 5.70,   2021: 5.70,   2022: 5.70,   2023: 5.70,   2024: 5.70   },
+  "OBLIGACIONES NEGOCIABLES":             { 2020: 6.00,   2021: 6.00,   2022: 6.00,   2023: 6.00,   2024: 6.00   },
+  "PIMCO INCOME FUND":                    { 2020: 4.50,   2021: 1.80,   2022: -3.20,  2023: 7.10,   2024: 6.50   },
+  "BARINGS PRIVATE CREDIT":               { 2020: 7.20,   2021: 9.80,   2022: 10.50,  2023: 12.10,  2024: 11.50  },
+  "BARINGS GLOBAL SECURES BONDS":         { 2020: 6.80,   2021: 4.90,   2022: -8.20,  2023: 10.50,  2024: 9.20   },
+  "GOLD":                                 { 2020: 24.81,  2021: -4.15,  2022: -0.77,  2023: 12.69,  2024: 26.66  },
+};
+
+const FONDOS_ESTIMADOS = new Set([
+  "Neuberguer Global Equity MEGATRENDS",
+  "PIMCO INCOME FUND",
+  "BARINGS PRIVATE CREDIT",
+  "BARINGS GLOBAL SECURES BONDS",
+]);
+
+function fmt(n: number) {
+  return `${n >= 0 ? "+" : ""}${n.toFixed(2)}%`;
+}
+
+function SimulacionHistorica({ items }: { items: { activoNombre: string; porcentaje: number }[] }) {
+  const { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } = require("recharts") as typeof import("recharts");
+
+  const retornos = items.filter((i) => RETORNOS[i.activoNombre]);
+
+  const retornosCartera: Record<Año, number> = { 2020: 0, 2021: 0, 2022: 0, 2023: 0, 2024: 0 };
+  for (const año of AÑOS) {
+    for (const item of retornos) {
+      retornosCartera[año] += (item.porcentaje / 100) * RETORNOS[item.activoNombre][año];
+    }
+  }
+
+  let valor = 100000;
+  const chartData = [{ year: "Inicio", valor: 100000 }];
+  for (const año of AÑOS) {
+    valor = valor * (1 + retornosCartera[año] / 100);
+    chartData.push({ year: String(año), valor: Math.round(valor) });
+  }
+
+  const hayEstimados = items.some((i) => FONDOS_ESTIMADOS.has(i.activoNombre));
+
+  return (
+    <div className="space-y-4 border rounded-xl p-4 bg-white">
+      <h3 className="font-semibold text-slate-700">Simulación histórica 2020–2024</h3>
+
+      <table className="w-full text-sm border rounded-lg overflow-hidden">
+        <thead>
+          <tr className="bg-slate-100 text-slate-600 text-left">
+            <th className="px-3 py-2 font-semibold">Activo</th>
+            <th className="px-3 py-2 font-semibold text-right">Pond.</th>
+            {AÑOS.map((a) => <th key={a} className="px-3 py-2 font-semibold text-right">{a}</th>)}
+          </tr>
+        </thead>
+        <tbody>
+          {items.map((item) => {
+            const r = RETORNOS[item.activoNombre];
+            return (
+              <tr key={item.activoNombre} className="border-t">
+                <td className="px-3 py-2">
+                  {item.activoNombre}
+                  {FONDOS_ESTIMADOS.has(item.activoNombre) && <span className="text-xs text-slate-400 ml-1">*</span>}
+                </td>
+                <td className="px-3 py-2 text-right">{item.porcentaje}%</td>
+                {AÑOS.map((a) => (
+                  <td key={a} className={`px-3 py-2 text-right font-medium ${r ? (r[a] >= 0 ? "text-emerald-600" : "text-red-600") : "text-slate-400"}`}>
+                    {r ? fmt(r[a]) : "—"}
+                  </td>
+                ))}
+              </tr>
+            );
+          })}
+          <tr className="border-t bg-slate-50 font-semibold">
+            <td className="px-3 py-2">Cartera total</td>
+            <td className="px-3 py-2 text-right">—</td>
+            {AÑOS.map((a) => (
+              <td key={a} className={`px-3 py-2 text-right ${retornosCartera[a] >= 0 ? "text-emerald-700" : "text-red-700"}`}>
+                {fmt(retornosCartera[a])}
+              </td>
+            ))}
+          </tr>
+        </tbody>
+      </table>
+
+      <div>
+        <p className="text-xs font-semibold text-slate-500 mb-2 uppercase tracking-wide">Evolución de USD 100.000 invertidos</p>
+        <ResponsiveContainer width="100%" height={260}>
+          <LineChart data={chartData}>
+            <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+            <XAxis dataKey="year" tick={{ fontSize: 12 }} />
+            <YAxis tickFormatter={(v: number) => `$${(v / 1000).toFixed(0)}k`} tick={{ fontSize: 12 }} />
+            <Tooltip formatter={(v: number) => [`$${v.toLocaleString("en-US")}`, "Valor cartera"]} />
+            <Line type="monotone" dataKey="valor" stroke="#2563eb" strokeWidth={2} dot={{ fill: "#2563eb", r: 4 }} />
+          </LineChart>
+        </ResponsiveContainer>
+      </div>
+
+      {hayEstimados && (
+        <p className="text-xs text-slate-400">* Rendimientos de fondos con ISIN son aproximados basados en el perfil de riesgo del instrumento.</p>
+      )}
+    </div>
+  );
+}
+
 function CarterasTab() {
   const [templates, setTemplates] = useState<PortfolioTemplateWithItems[]>([]);
   const [tipo, setTipo] = useState("CONSERVADORA");
-  const [item, setItem] = useState({ activoNombre: "", ticker: "", tipoActivo: "RENTA_FIJA", porcentaje: 0 });
+  const [activoSeleccionado, setActivoSeleccionado] = useState(ACTIVOS_PREDEFINIDOS[0].label);
+  const [porcentaje, setPorcentaje] = useState(0);
+  const [verSimulacion, setVerSimulacion] = useState(false);
 
   const load = () =>
     fetch("/api/portfolios")
@@ -380,14 +505,14 @@ function CarterasTab() {
   );
 
   return (
-    <section className="space-y-3">
-      <h2 className="text-xl font-semibold">Propuestas de carteras</h2>
-      <div className="flex gap-2 items-center">
+    <section className="space-y-4">
+      <h2 className="text-xl font-bold text-slate-800">Propuestas de carteras</h2>
+      <div className="flex gap-2 items-center flex-wrap">
         {["CONSERVADORA", "MODERADA", "AGRESIVA"].map((portfolioType) => (
           <Button
             key={portfolioType}
             variant={tipo === portfolioType ? "default" : "outline"}
-            onClick={() => setTipo(portfolioType)}
+            onClick={() => { setTipo(portfolioType); setVerSimulacion(false); }}
           >
             {portfolioType}
           </Button>
@@ -413,22 +538,30 @@ function CarterasTab() {
             }}
           />
 
-          <div className="grid grid-cols-5 gap-2">
-            <Input placeholder="Activo" value={item.activoNombre} onChange={(event) => setItem({ ...item, activoNombre: event.target.value })} />
-            <Input placeholder="Ticker (opcional)" value={item.ticker} onChange={(event) => setItem({ ...item, ticker: event.target.value })} />
-            <Select value={item.tipoActivo} onChange={(event) => setItem({ ...item, tipoActivo: event.target.value })}>
-              <option>RENTA_FIJA</option>
-              <option>RENTA_VARIABLE</option>
+          <div className="grid grid-cols-3 gap-2">
+            <Select value={activoSeleccionado} onChange={(e) => setActivoSeleccionado(e.target.value)}>
+              {ACTIVOS_PREDEFINIDOS.map((a) => (
+                <option key={a.label} value={a.label}>{a.label}</option>
+              ))}
             </Select>
-            <Input type="number" min={0} max={100} value={item.porcentaje} onChange={(event) => setItem({ ...item, porcentaje: Number(event.target.value) })} />
+            <Input
+              type="number" min={0} max={100} placeholder="Ponderación (%)"
+              value={porcentaje || ""}
+              onChange={(e) => setPorcentaje(Number(e.target.value))}
+            />
             <Button
               onClick={async () => {
-                if (!item.activoNombre.trim()) return;
+                if (!porcentaje) return;
+                const activo = ACTIVOS_PREDEFINIDOS.find((a) => a.label === activoSeleccionado)!;
                 await fetch("/api/portfolios", {
                   method: "POST",
-                  body: JSON.stringify({ action: "addItem", data: { ...item, activoNombre: item.activoNombre.trim(), templateId: currentTemplate.id } }),
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({
+                    action: "addItem",
+                    data: { activoNombre: activo.label, ticker: activo.ticker, tipoActivo: activo.tipoActivo, porcentaje, templateId: currentTemplate.id },
+                  }),
                 });
-                setItem({ activoNombre: "", ticker: "", tipoActivo: "RENTA_FIJA", porcentaje: 0 });
+                setPorcentaje(0);
                 load();
               }}
             >
@@ -442,23 +575,24 @@ function CarterasTab() {
                 <th className="px-3 py-2 font-semibold">Activo</th>
                 <th className="px-3 py-2 font-semibold">Ticker</th>
                 <th className="px-3 py-2 font-semibold">Tipo</th>
-                <th className="px-3 py-2 font-semibold">%</th>
+                <th className="px-3 py-2 font-semibold text-right">%</th>
                 <th />
               </tr>
             </thead>
             <tbody>
               {currentTemplate.items.map((portfolioItem) => (
-                <tr className="border-t" key={portfolioItem.id}>
-                  <td>{portfolioItem.activoNombre}</td>
-                  <td>{portfolioItem.ticker || "-"}</td>
-                  <td>{portfolioItem.tipoActivo}</td>
-                  <td>{portfolioItem.porcentaje}</td>
-                  <td>
+                <tr className="border-t hover:bg-slate-50" key={portfolioItem.id}>
+                  <td className="px-3 py-2">{portfolioItem.activoNombre}</td>
+                  <td className="px-3 py-2 text-slate-500">{portfolioItem.ticker || "—"}</td>
+                  <td className="px-3 py-2 text-slate-500">{portfolioItem.tipoActivo}</td>
+                  <td className="px-3 py-2 text-right font-medium">{portfolioItem.porcentaje}%</td>
+                  <td className="px-3 py-2">
                     <Button
                       variant="destructive"
                       onClick={async () => {
                         await fetch("/api/portfolios", {
                           method: "POST",
+                          headers: { "Content-Type": "application/json" },
                           body: JSON.stringify({ action: "deleteItem", id: portfolioItem.id }),
                         });
                         load();
@@ -471,6 +605,16 @@ function CarterasTab() {
               ))}
             </tbody>
           </table>
+
+          {currentTemplate.items.length > 0 && (
+            <Button variant="outline" onClick={() => setVerSimulacion((v) => !v)}>
+              {verSimulacion ? "Ocultar simulación" : "Ver simulación histórica 2020–2024"}
+            </Button>
+          )}
+
+          {verSimulacion && currentTemplate.items.length > 0 && (
+            <SimulacionHistorica items={currentTemplate.items.map((i) => ({ activoNombre: i.activoNombre, porcentaje: i.porcentaje }))} />
+          )}
         </>
       )}
     </section>

@@ -959,4 +959,3 @@ function NoticiasTab() {
     </section>
   );
 }
-}

@@ -645,6 +645,7 @@ function MercadoTab() {
 
   const etfs = quotes.filter((q) => ["SPY", "QQQ", "IWM", "GC=F", "FXI", "EEM"].includes(q.symbol));
   const mag7 = quotes.filter((q) => ["AAPL", "MSFT", "GOOGL", "AMZN", "META", "NVDA", "TSLA"].includes(q.symbol));
+  const adrs = quotes.filter((q) => ["GGAL", "BMA", "YPF", "MELI", "PAM", "TGS", "CEPU", "LOMA", "BIOX", "GLOB", "DESP", "VIST", "TEO", "IRS"].includes(q.symbol));
 
   const QuoteCard = ({ quote }: { quote: MarketQuote }) => {
     const positive = typeof quote.change === "number" && quote.change >= 0;
@@ -697,6 +698,13 @@ function MercadoTab() {
         <h3 className="text-sm font-semibold text-slate-500 uppercase tracking-wide mb-3">Magnificent 7</h3>
         <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">
           {mag7.map((quote) => <QuoteCard key={quote.symbol} quote={quote} />)}
+        </div>
+      </div>
+
+      <div>
+        <h3 className="text-sm font-semibold text-slate-500 uppercase tracking-wide mb-3">ADRs Argentinos</h3>
+        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">
+          {adrs.map((quote) => <QuoteCard key={quote.symbol} quote={quote} />)}
         </div>
       </div>
     </section>

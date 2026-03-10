@@ -12,28 +12,25 @@ type Quote = {
 
 type YahooChartMeta = {
   regularMarketPrice?: number;
-  regularMarketChange?: number;
-  regularMarketChangePercent?: number;
-  previousClose?: number;
   chartPreviousClose?: number;
   currency?: string;
   regularMarketTime?: number;
 };
 
 type YahooChartResponse = {
-  chart?: {
-    result?: Array<{ meta?: YahooChartMeta }>;
-    error?: { description?: string };
-  };
+  chart?: { result?: Array<{ meta?: YahooChartMeta }> };
 };
 
-const SYMBOLS: Record<string, string> = {
+const ETFS: Record<string, string> = {
   SPY: "S&P 500 ETF",
   QQQ: "Nasdaq 100 ETF",
   IWM: "Russell 2000 ETF",
   "GC=F": "Oro (Futuros)",
   FXI: "China Large-Cap ETF",
   EEM: "Emerging Markets ETF",
+};
+
+const MAG7: Record<string, string> = {
   AAPL: "Apple",
   MSFT: "Microsoft",
   GOOGL: "Alphabet",
@@ -43,10 +40,28 @@ const SYMBOLS: Record<string, string> = {
   TSLA: "Tesla",
 };
 
+const ADRS: Record<string, string> = {
+  GGAL: "Grupo Galicia",
+  BMA: "Banco Macro",
+  YPF: "YPF",
+  MELI: "MercadoLibre",
+  PAM: "Pampa Energía",
+  TGS: "Transportadora Gas del Sur",
+  CEPU: "Central Puerto",
+  LOMA: "Loma Negra",
+  BIOX: "Bioceres",
+  GLOB: "Globant",
+  DESP: "Despegar",
+  VIST: "Vista Oil & Gas",
+  TEO: "Telecom Argentina",
+  IRS: "IRSA",
+};
+
+const ALL_SYMBOLS = { ...ETFS, ...MAG7, ...ADRS };
+
 const HEADERS = {
   "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
   "Accept": "application/json",
-  "Accept-Language": "en-US,en;q=0.9",
 };
 
 async function fetchQuote(symbol: string): Promise<Quote> {
@@ -57,11 +72,14 @@ async function fetchQuote(symbol: string): Promise<Quote> {
     const payload = (await response.json()) as YahooChartResponse;
     const meta = payload.chart?.result?.[0]?.meta;
     const price = meta?.regularMarketPrice ?? null;
-    const change = meta?.regularMarketChange ?? null;
-    const changePercent = meta?.regularMarketChangePercent ?? null;
+    const prevClose = meta?.chartPreviousClose ?? null;
+    const change = price !== null && prevClose !== null ? price - prevClose : null;
+    const changePercent = change !== null && prevClose !== null && prevClose !== 0
+      ? (change / prevClose) * 100
+      : null;
     return {
       symbol,
-      name: SYMBOLS[symbol] ?? symbol,
+      name: ALL_SYMBOLS[symbol] ?? symbol,
       price,
       change,
       changePercent,
@@ -69,13 +87,13 @@ async function fetchQuote(symbol: string): Promise<Quote> {
       marketTime: meta?.regularMarketTime ? new Date(meta.regularMarketTime * 1000).toISOString() : null,
     };
   } catch {
-    return { symbol, name: SYMBOLS[symbol] ?? symbol, price: null, change: null, changePercent: null, currency: "USD", marketTime: null };
+    return { symbol, name: ALL_SYMBOLS[symbol] ?? symbol, price: null, change: null, changePercent: null, currency: "USD", marketTime: null };
   }
 }
 
 export async function GET() {
   try {
-    const quotes = await Promise.all(Object.keys(SYMBOLS).map(fetchQuote));
+    const quotes = await Promise.all(Object.keys(ALL_SYMBOLS).map(fetchQuote));
     return NextResponse.json({ updatedAt: new Date().toISOString(), quotes });
   } catch {
     return NextResponse.json({ error: "Error inesperado consultando mercado" }, { status: 500 });

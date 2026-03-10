@@ -55,43 +55,43 @@ type MarketQuote = {
 type MarketResponse = { updatedAt: string; quotes: MarketQuote[]; error?: string };
 
 
+const NAV_ITEMS: [TabKey, string][] = [
+  ["cumples", "🎂 Cumpleaños"],
+  ["prospects", "📋 Prospects"],
+  ["carteras", "📊 Carteras"],
+  ["crm", "📁 CRM Informes"],
+  ["mercado", "📈 Mercado"],
+];
+
 export default function Dashboard() {
   const [tab, setTab] = useState<TabKey>("cumples");
 
   return (
-    <div className="min-h-screen flex">
-      <aside className="w-64 border-r p-4 bg-muted/20 space-y-2">
-        <h1 className="font-bold text-lg mb-4">Dashboard Asesoría</h1>
-        {[
-          ["cumples", "Cumpleaños"],
-          ["prospects", "Prospects"],
-          ["carteras", "Propuestas de carteras"],
-          ["crm", "CRM – Informes a clientes"],
-          ["mercado", "Mercado"],
-        ].map(([id, label]) => (
-          <button
-            key={id}
-            type="button"
-            onClick={() => setTab(id as TabKey)}
-            className={`w-full text-left rounded px-3 py-2 text-sm ${tab === id ? "bg-primary text-primary-foreground" : "hover:bg-muted"}`}
-          >
-            {label}
-          </button>
-        ))}
-
-        <Button
-          className="w-full mt-6"
-          variant="outline"
-          onClick={async () => {
-            await fetch("/api/auth/logout", { method: "POST" });
-            window.location.href = "/login";
-          }}
-        >
-          Salir
-        </Button>
+    <div className="min-h-screen flex bg-slate-50">
+      <aside className="w-60 flex flex-col bg-slate-900 text-slate-100 shrink-0">
+        <div className="px-5 py-6 border-b border-slate-700">
+          <p className="text-xs font-semibold uppercase tracking-widest text-slate-400 mb-1">Wealth Management</p>
+          <h1 className="font-bold text-lg text-white leading-tight">Dashboard</h1>
+        </div>
+        <nav className="flex-1 px-3 py-4 space-y-1">
+          {NAV_ITEMS.map(([id, label]) => (
+            <button
+              key={id}
+              type="button"
+              onClick={() => setTab(id)}
+              className={`w-full text-left rounded-lg px-3 py-2 text-sm transition-colors ${
+                tab === id
+                  ? "bg-blue-600 text-white font-medium"
+                  : "text-slate-300 hover:bg-slate-800 hover:text-white"
+              }`}
+            >
+              {label}
+            </button>
+          ))}
+        </nav>
       </aside>
 
-      <main className="flex-1 p-6 overflow-auto">
+      <main className="flex-1 p-8 overflow-auto">
         {tab === "cumples" && <CumplesTab />}
         {tab === "prospects" && <ProspectsTab />}
         {tab === "carteras" && <CarterasTab />}
@@ -142,15 +142,15 @@ function CumplesTab() {
         </Select>
       </div>
 
-      <table className="w-full text-sm border">
+      <table className="w-full text-sm border rounded-lg overflow-hidden">
         <thead>
-          <tr className="bg-muted">
-            <th>Nombre</th>
-            <th>Asesor</th>
-            <th>Cumple</th>
-            <th>Días faltantes</th>
-            <th>Teléfono</th>
-            <th>Patrimonio USD</th>
+          <tr className="bg-slate-100 text-slate-600 text-left">
+            <th className="px-3 py-2 font-semibold">Nombre</th>
+            <th className="px-3 py-2 font-semibold">Asesor</th>
+            <th className="px-3 py-2 font-semibold">Cumple</th>
+            <th className="px-3 py-2 font-semibold">Días faltantes</th>
+            <th className="px-3 py-2 font-semibold">Teléfono</th>
+            <th className="px-3 py-2 font-semibold">Patrimonio USD</th>
           </tr>
         </thead>
         <tbody>
@@ -258,14 +258,14 @@ function ProspectsTab() {
         </Select>
       </div>
 
-      <table className="w-full text-sm border">
+      <table className="w-full text-sm border rounded-lg overflow-hidden">
         <thead>
-          <tr className="bg-muted">
-            <th>Nombre</th>
-            <th>Cargado por</th>
-            <th>Fecha carga</th>
-            <th>Estado</th>
-            <th>Última actualización</th>
+          <tr className="bg-slate-100 text-slate-600 text-left">
+            <th className="px-3 py-2 font-semibold">Nombre</th>
+            <th className="px-3 py-2 font-semibold">Cargado por</th>
+            <th className="px-3 py-2 font-semibold">Fecha carga</th>
+            <th className="px-3 py-2 font-semibold">Estado</th>
+            <th className="px-3 py-2 font-semibold">Última actualización</th>
             <th />
           </tr>
         </thead>
@@ -434,13 +434,13 @@ function CarterasTab() {
             </Button>
           </div>
 
-          <table className="w-full text-sm border">
+          <table className="w-full text-sm border rounded-lg overflow-hidden">
             <thead>
-              <tr className="bg-muted">
-                <th>Activo</th>
-                <th>Ticker</th>
-                <th>Tipo</th>
-                <th>%</th>
+              <tr className="bg-slate-100 text-slate-600 text-left">
+                <th className="px-3 py-2 font-semibold">Activo</th>
+                <th className="px-3 py-2 font-semibold">Ticker</th>
+                <th className="px-3 py-2 font-semibold">Tipo</th>
+                <th className="px-3 py-2 font-semibold">%</th>
                 <th />
               </tr>
             </thead>
@@ -526,16 +526,16 @@ function CrmTab() {
         <Input placeholder="Buscar por nombre" value={q} onChange={(event) => setQ(event.target.value)} />
       </div>
 
-      <table className="w-full text-sm border">
+      <table className="w-full text-sm border rounded-lg overflow-hidden">
         <thead>
-          <tr className="bg-muted">
-            <th>Nombre</th>
-            <th>Asesor</th>
-            <th>Patrimonio USD</th>
-            <th>Último informe</th>
-            <th>Días desde último envío</th>
-            <th>Estado</th>
-            <th>Acciones</th>
+          <tr className="bg-slate-100 text-slate-600 text-left">
+            <th className="px-3 py-2 font-semibold">Nombre</th>
+            <th className="px-3 py-2 font-semibold">Asesor</th>
+            <th className="px-3 py-2 font-semibold">Patrimonio USD</th>
+            <th className="px-3 py-2 font-semibold">Último informe</th>
+            <th className="px-3 py-2 font-semibold">Días desde último envío</th>
+            <th className="px-3 py-2 font-semibold">Estado</th>
+            <th className="px-3 py-2 font-semibold">Acciones</th>
           </tr>
         </thead>
         <tbody>
@@ -643,37 +643,61 @@ function MercadoTab() {
     return () => clearInterval(timer);
   }, []);
 
+  const etfs = quotes.filter((q) => ["SPY", "QQQ", "IWM", "GC=F", "FXI", "EEM"].includes(q.symbol));
+  const mag7 = quotes.filter((q) => ["AAPL", "MSFT", "GOOGL", "AMZN", "META", "NVDA", "TSLA"].includes(q.symbol));
+
+  const QuoteCard = ({ quote }: { quote: MarketQuote }) => {
+    const positive = typeof quote.change === "number" && quote.change >= 0;
+    const hasData = quote.price !== null;
+    return (
+      <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm space-y-1">
+        <div className="flex items-center justify-between">
+          <span className="text-xs font-bold text-slate-500 uppercase tracking-wide">{quote.symbol}</span>
+          {hasData && (
+            <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${positive ? "bg-emerald-50 text-emerald-600" : "bg-red-50 text-red-600"}`}>
+              {positive ? "▲" : "▼"} {quote.changePercent !== null ? `${Math.abs(quote.changePercent).toFixed(2)}%` : ""}
+            </span>
+          )}
+        </div>
+        <p className="text-sm text-slate-400 truncate">{quote.name}</p>
+        <p className="text-xl font-bold text-slate-800">
+          {quote.price !== null ? `$${Number(quote.price).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : "—"}
+        </p>
+        {hasData && quote.change !== null && (
+          <p className={`text-xs font-medium ${positive ? "text-emerald-600" : "text-red-600"}`}>
+            {positive ? "+" : ""}{quote.change.toFixed(2)} hoy
+          </p>
+        )}
+      </div>
+    );
+  };
+
   return (
-    <section className="space-y-4">
+    <section className="space-y-6">
       <div className="flex items-center justify-between">
-        <h2 className="text-xl font-semibold">Mercado</h2>
+        <div>
+          <h2 className="text-xl font-bold text-slate-800">Mercado</h2>
+          {updatedAt && (
+            <p className="text-xs text-slate-400 mt-0.5">Actualizado: {new Date(updatedAt).toLocaleString("es-AR")}</p>
+          )}
+        </div>
         <Button variant="outline" onClick={load}>Actualizar</Button>
       </div>
 
-      <p className="text-sm text-muted-foreground">Cotizaciones en vivo (fuente: Yahoo Finance) de SPY, QQQ y Oro.</p>
-      {updatedAt && (
-        <p className="text-xs text-muted-foreground">Última actualización: {new Date(updatedAt).toLocaleString("es-AR")}</p>
-      )}
-      {error && <p className="text-sm text-red-600">{error}</p>}
+      {error && <p className="text-sm text-red-600 bg-red-50 rounded-lg px-3 py-2">{error}</p>}
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-        {quotes.map((quote) => {
-          const positive = typeof quote.change === "number" && quote.change >= 0;
-          return (
-            <div key={quote.symbol} className="rounded-lg border p-4 bg-white space-y-2">
-              <p className="text-sm font-semibold">{quote.symbol}</p>
-              <p className="text-xs text-muted-foreground">{quote.name}</p>
-              <p className="text-2xl font-bold">
-                {quote.price !== null ? `${quote.currency} ${Number(quote.price).toLocaleString("es-AR")}` : "-"}
-              </p>
-              <Badge className={positive ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}>
-                {quote.change !== null && quote.changePercent !== null
-                  ? `${positive ? "+" : ""}${quote.change.toFixed(2)} (${positive ? "+" : ""}${quote.changePercent.toFixed(2)}%)`
-                  : "Sin datos de variación"}
-              </Badge>
-            </div>
-          );
-        })}
+      <div>
+        <h3 className="text-sm font-semibold text-slate-500 uppercase tracking-wide mb-3">ETFs e Índices</h3>
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+          {etfs.map((quote) => <QuoteCard key={quote.symbol} quote={quote} />)}
+        </div>
+      </div>
+
+      <div>
+        <h3 className="text-sm font-semibold text-slate-500 uppercase tracking-wide mb-3">Magnificent 7</h3>
+        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">
+          {mag7.map((quote) => <QuoteCard key={quote.symbol} quote={quote} />)}
+        </div>
       </div>
     </section>
   );

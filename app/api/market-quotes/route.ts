@@ -25,17 +25,38 @@ type YahooQuoteResponse = {
   };
 };
 
-const SYMBOLS = ["SPY", "QQQ", "GC=F"] as const;
+const SYMBOLS = [
+  "SPY", "QQQ", "IWM", "GC=F", "FXI", "EEM",
+  "AAPL", "MSFT", "GOOGL", "AMZN", "META", "NVDA", "TSLA",
+] as const;
+
 const NAMES: Record<string, string> = {
-  SPY: "SPDR S&P 500 ETF (SPY)",
-  QQQ: "Invesco QQQ Trust (QQQ)",
-  "GC=F": "Oro (Futuros GC=F)",
+  SPY: "S&P 500 ETF",
+  QQQ: "Nasdaq 100 ETF",
+  IWM: "Russell 2000 ETF",
+  "GC=F": "Oro (Futuros)",
+  FXI: "China Large-Cap ETF",
+  EEM: "Emerging Markets ETF",
+  AAPL: "Apple",
+  MSFT: "Microsoft",
+  GOOGL: "Alphabet",
+  AMZN: "Amazon",
+  META: "Meta",
+  NVDA: "NVIDIA",
+  TSLA: "Tesla",
 };
 
 export async function GET() {
   try {
     const url = `https://query1.finance.yahoo.com/v7/finance/quote?symbols=${encodeURIComponent(SYMBOLS.join(","))}`;
-    const response = await fetch(url, { next: { revalidate: 30 } });
+    const response = await fetch(url, {
+      headers: {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        "Accept": "application/json",
+        "Accept-Language": "en-US,en;q=0.9",
+      },
+      next: { revalidate: 30 },
+    });
 
     if (!response.ok) {
       return NextResponse.json({ error: "No se pudieron obtener cotizaciones" }, { status: 502 });

@@ -881,8 +881,15 @@ function InstrumentosTab() {
   );
 }
 
-type NewsItem = { title: string; source: string; link: string; pubDate: string };
+type NewsItem = { title: string; source: string; link: string; pubDate: string; age: string };
 type NewsResponse = { items: NewsItem[]; updatedAt: string; error?: string };
+
+const SOURCE_STYLES: Record<string, string> = {
+  "Yahoo Finance": "bg-purple-50 text-purple-700 border-purple-200",
+  "Reuters":       "bg-orange-50 text-orange-700 border-orange-200",
+  "CNBC":          "bg-blue-50 text-blue-700 border-blue-200",
+  "MarketWatch":   "bg-green-50 text-green-700 border-green-200",
+};
 
 function NoticiasTab() {
   const [items, setItems] = useState<NewsItem[]>([]);
@@ -909,38 +916,60 @@ function NoticiasTab() {
   useEffect(() => { load(); }, []);
 
   return (
-    <section className="space-y-4 max-w-3xl">
+    <section className="space-y-5">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-xl font-bold text-slate-800">Noticias del mercado</h2>
-          {updatedAt && <p className="text-xs text-slate-400 mt-0.5">Actualizado: {new Date(updatedAt).toLocaleString("es-AR")}</p>}
+          <h2 className="text-xl font-bold text-slate-800">Market News</h2>
+          <p className="text-xs text-slate-400 mt-0.5">
+            {updatedAt ? `Updated ${new Date(updatedAt).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" })}` : "Loading..."}
+            {" · "}Last 48 hours · Yahoo Finance, Reuters, CNBC, MarketWatch
+          </p>
         </div>
-        <Button variant="outline" onClick={load}>Actualizar</Button>
+        <Button variant="outline" onClick={load}>Refresh</Button>
       </div>
 
       {error && <p className="text-sm text-red-600 bg-red-50 rounded-lg px-3 py-2">{error}</p>}
-      {loading && <p className="text-sm text-slate-400">Cargando noticias...</p>}
 
-      <div className="space-y-3">
-        {items.map((item, i) => (
-          <a
-            key={i}
-            href={item.link}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="block bg-white border border-slate-200 rounded-xl p-4 shadow-sm hover:border-blue-300 hover:shadow-md transition-all"
-          >
-            <div className="flex items-start justify-between gap-3">
-              <p className="font-medium text-slate-800 leading-snug">{item.title}</p>
-              <span className="text-blue-500 text-lg shrink-0">↗</span>
+      {loading ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <div key={i} className="bg-white border border-slate-100 rounded-xl p-4 animate-pulse space-y-2">
+              <div className="h-3 bg-slate-100 rounded w-1/4" />
+              <div className="h-4 bg-slate-100 rounded w-full" />
+              <div className="h-4 bg-slate-100 rounded w-3/4" />
             </div>
-            <div className="flex gap-3 mt-2 text-xs text-slate-400">
-              {item.source && <span className="font-medium text-slate-500">{item.source}</span>}
-              {item.pubDate && <span>{new Date(item.pubDate).toLocaleString("es-AR", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })}</span>}
-            </div>
-          </a>
-        ))}
-      </div>
+          ))}
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          {items.map((item, i) => (
+            <a
+              key={i}
+              href={item.link}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="group flex flex-col bg-white border border-slate-200 rounded-xl p-4 shadow-sm hover:shadow-md hover:border-blue-200 transition-all"
+            >
+              <div className="flex items-center justify-between mb-2">
+                <span className={`text-xs font-semibold px-2 py-0.5 rounded-full border ${SOURCE_STYLES[item.source] ?? "bg-slate-50 text-slate-600 border-slate-200"}`}>
+                  {item.source}
+                </span>
+                <span className="text-xs text-slate-400">{item.age}</span>
+              </div>
+              <p className="font-medium text-slate-800 leading-snug text-sm flex-1 group-hover:text-blue-700 transition-colors">
+                {item.title}
+              </p>
+              <div className="flex items-center gap-1 mt-3 text-xs text-blue-500 font-medium">
+                Read more <span>→</span>
+              </div>
+            </a>
+          ))}
+        </div>
+      )}
+
+      {!loading && items.length === 0 && !error && (
+        <p className="text-sm text-slate-400 text-center py-8">No recent news found in the last 48 hours.</p>
+      )}
     </section>
   );
 }

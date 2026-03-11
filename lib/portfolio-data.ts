@@ -12,6 +12,8 @@ export const RETORNOS: Record<string, Record<Año, number>> = {
   "BARINGS PRIVATE CREDIT":              { 2021: 9.80,   2022: 10.50,  2023: 12.10,  2024: 11.50,  2025: 11.00  },
   "BARINGS GLOBAL SECURES BONDS":        { 2021: 4.90,   2022: -8.20,  2023: 10.50,  2024: 9.20,   2025: 7.80   },
   "GOLD":                                { 2021: -4.15,  2022: -0.77,  2023: 12.69,  2024: 26.66,  2025: 28.50  },
+  "DOW JONES (DIA)":                     { 2021: 18.73,  2022: -6.86,  2023: 13.70,  2024: 12.48,  2025: 12.56  },
+  "IWM (Russell 2000)":                  { 2021: 14.78,  2022: -21.56, 2023: 16.93,  2024: 11.54,  2025: 12.44  },
 };
 
 export const ASSET_DESCRIPTIONS: Record<string, string> = {

@@ -377,6 +377,8 @@ const ACTIVOS_PREDEFINIDOS = [
   { label: "BARINGS PRIVATE CREDIT",               ticker: "",      tipoActivo: "RENTA_FIJA"     },
   { label: "BARINGS GLOBAL SECURES BONDS",         ticker: "",      tipoActivo: "RENTA_FIJA"     },
   { label: "GOLD",                                 ticker: "GC=F",  tipoActivo: "RENTA_VARIABLE" },
+  { label: "DOW JONES (DIA)",                      ticker: "DIA",   tipoActivo: "RENTA_VARIABLE" },
+  { label: "IWM (Russell 2000)",                   ticker: "IWM",   tipoActivo: "RENTA_VARIABLE" },
 ];
 
 const FONDOS_ESTIMADOS = new Set([

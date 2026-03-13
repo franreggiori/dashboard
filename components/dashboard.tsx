@@ -982,15 +982,15 @@ function NoticiasTab() {
 
 type BondRow = {
   ticker: string;
-  ultimo: number | null;
-  tirUltimo: number | null;
-  cantCompra: number | null;
-  precioCompra: number | null;
-  yieldCompra: number | null;
-  yieldVenta: number | null;
-  precioVenta: number | null;
-  cantVenta: number | null;
-  volumen: number | null;
+  lastPrice: number | null;
+  tirLast: number | null;
+  bidQty: number | null;
+  bidPx: number | null;
+  yBid: number | null;
+  yAsk: number | null;
+  askPx: number | null;
+  askQty: number | null;
+  volume: number | null;
   error: string | null;
 };
 
@@ -1011,14 +1011,14 @@ const TICKERS_YIELDS = [
   "GN43D", "IRCFD", "IRCLD", "IRCND", "IRCOD", "LOC3D", "MGCND", "MGCQD", "PN35D", "PN38D",
   "PN42D", "RC2CD", "RCCRD", "T662D", "TLC1D", "TLCMD", "TLCOD", "TLCQD", "VBC1D", "VBC2D",
   "VSCOD", "VSCPD", "VSCWD", "YFCKD", "YFCLD", "YM37D", "YMCID", "YMCVD", "YMCYD",
-].map((ticker) => ({ ticker, type: "BONOS", settlement: "A-48HS" }));
+].map((ticker) => ({ ticker, type: "BONOS", settlement: "A-24HS" }));
 
 const TICKERS_YIELDS2 = [
   "AFCIO", "ARC1O", "BACGO", "BGC4O", "BYCHO", "BYCVO", "CAC5O", "CS38O", "CS47O", "DNC3O",
   "GN43O", "IRCFO", "IRCLO", "IRCNO", "IRCOO", "LOC3O", "MGCNO", "MGCQO", "PN35O", "PN38O",
   "PN42O", "RC2CO", "RCCRO", "T662O", "TLC1O", "TLCMO", "TLCOO", "TLCQO", "VBC1O", "VBC2O",
   "VSCOO", "VSCPO", "VSCWO", "YFCKO", "YFCLO", "YM37O", "YMCIO", "YMCVO", "YMCYO",
-].map((ticker) => ({ ticker, type: "BONOS", settlement: "A-48HS" }));
+].map((ticker) => ({ ticker, type: "BONOS", settlement: "A-24HS" }));
 
 function fmtPrice(v: number | null) {
   if (v === null) return "-";
@@ -1063,15 +1063,15 @@ function BondsTable({ rows }: { rows: BondRow[] }) {
                 <td colSpan={9} className="px-3 py-2 text-red-500 text-xs">{row.error}</td>
               ) : (
                 <>
-                  <td className="px-3 py-2 text-right">{fmtPrice(row.ultimo)}</td>
-                  <td className="px-3 py-2 text-right font-medium text-blue-700">{fmtYield(row.tirUltimo)}</td>
-                  <td className="px-3 py-2 text-right text-slate-500">{fmtQty(row.cantCompra)}</td>
-                  <td className="px-3 py-2 text-right">{fmtPrice(row.precioCompra)}</td>
-                  <td className="px-3 py-2 text-right font-medium text-emerald-700">{fmtYield(row.yieldCompra)}</td>
-                  <td className="px-3 py-2 text-right font-medium text-rose-700">{fmtYield(row.yieldVenta)}</td>
-                  <td className="px-3 py-2 text-right">{fmtPrice(row.precioVenta)}</td>
-                  <td className="px-3 py-2 text-right text-slate-500">{fmtQty(row.cantVenta)}</td>
-                  <td className="px-3 py-2 text-right text-slate-500">{fmtQty(row.volumen)}</td>
+                  <td className="px-3 py-2 text-right">{fmtPrice(row.lastPrice)}</td>
+                  <td className="px-3 py-2 text-right font-medium text-blue-700">{fmtYield(row.tirLast)}</td>
+                  <td className="px-3 py-2 text-right text-slate-500">{fmtQty(row.bidQty)}</td>
+                  <td className="px-3 py-2 text-right">{fmtPrice(row.bidPx)}</td>
+                  <td className="px-3 py-2 text-right font-medium text-emerald-700">{fmtYield(row.yBid)}</td>
+                  <td className="px-3 py-2 text-right font-medium text-rose-700">{fmtYield(row.yAsk)}</td>
+                  <td className="px-3 py-2 text-right">{fmtPrice(row.askPx)}</td>
+                  <td className="px-3 py-2 text-right text-slate-500">{fmtQty(row.askQty)}</td>
+                  <td className="px-3 py-2 text-right text-slate-500">{fmtQty(row.volume)}</td>
                 </>
               )}
             </tr>

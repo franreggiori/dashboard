@@ -2,6 +2,28 @@ const PPI_BASE = "https://clientapi.portfoliopersonal.com";
 
 const INSTRUMENT_TYPES = ["ON", "BONOS", "LETRAS", "ACCIONES", "CEDEARS", "ETF", "FCI"] as const;
 
+const MAX_RETRIES = 4;
+const BACKOFF_BASE_SEC = 0.35;
+const BACKOFF_CAP_SEC = 6.0;
+
+export const SLEEP_BETWEEN_TICKERS_MS = 20;
+
+function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function fetchWithRetry(url: string, options: RequestInit): Promise<Response> {
+  for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+    const res = await fetch(url, options);
+    if (res.status !== 429) return res;
+    if (attempt === MAX_RETRIES) return res;
+    const backoff = Math.min(BACKOFF_BASE_SEC * Math.pow(2, attempt), BACKOFF_CAP_SEC);
+    await sleep(backoff * 1000);
+  }
+  // unreachable but satisfies TypeScript
+  return fetch(url, options);
+}
+
 export const PPI_HEADERS = {
   "AuthorizedClient": "API_CLI_REST",
   "ClientKey": "pp19CliApp12",
@@ -107,7 +129,7 @@ export async function estimateBond(
     quantity: "100",
     price: String(price),
   });
-  const res = await fetch(`${PPI_BASE}/api/1.0/MarketData/Bonds/Estimate?${params}`, {
+  const res = await fetchWithRetry(`${PPI_BASE}/api/1.0/MarketData/Bonds/Estimate?${params}`, {
     headers: { ...PPI_HEADERS, "Authorization": `Bearer ${token}` },
   });
   if (!res.ok) {

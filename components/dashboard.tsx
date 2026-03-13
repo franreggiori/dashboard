@@ -1006,16 +1006,19 @@ type Yields2Response = YieldsResponse & {
   al30DUSD: number;
 };
 
-const DEFAULT_TICKERS = [
-  { ticker: "AL29", type: "BONOS", settlement: "48hs" },
-  { ticker: "AL30", type: "BONOS", settlement: "48hs" },
-  { ticker: "AL35", type: "BONOS", settlement: "48hs" },
-  { ticker: "AL41", type: "BONOS", settlement: "48hs" },
-  { ticker: "GD29", type: "BONOS", settlement: "48hs" },
-  { ticker: "GD30", type: "BONOS", settlement: "48hs" },
-  { ticker: "GD35", type: "BONOS", settlement: "48hs" },
-  { ticker: "GD41", type: "BONOS", settlement: "48hs" },
-];
+const TICKERS_YIELDS = [
+  "AFCID", "ARC1D", "BACGD", "BGC4D", "BYCHD", "BYCVD", "CAC5D", "CS38D", "CS47D", "DNC3D",
+  "GN43D", "IRCFD", "IRCLD", "IRCND", "IRCOD", "LOC3D", "MGCND", "MGCQD", "PN35D", "PN38D",
+  "PN42D", "RC2CD", "RCCRD", "T662D", "TLC1D", "TLCMD", "TLCOD", "TLCQD", "VBC1D", "VBC2D",
+  "VSCOD", "VSCPD", "VSCWD", "YFCKD", "YFCLD", "YM37D", "YMCID", "YMCVD", "YMCYD",
+].map((ticker) => ({ ticker, type: "BONOS", settlement: "A-48HS" }));
+
+const TICKERS_YIELDS2 = [
+  "AFCIO", "ARC1O", "BACGO", "BGC4O", "BYCHO", "BYCVO", "CAC5O", "CS38O", "CS47O", "DNC3O",
+  "GN43O", "IRCFO", "IRCLO", "IRCNO", "IRCOO", "LOC3O", "MGCNO", "MGCQO", "PN35O", "PN38O",
+  "PN42O", "RC2CO", "RCCRO", "T662O", "TLC1O", "TLCMO", "TLCOO", "TLCQO", "VBC1O", "VBC2O",
+  "VSCOO", "VSCPO", "VSCWO", "YFCKO", "YFCLO", "YM37O", "YMCIO", "YMCVO", "YMCYO",
+].map((ticker) => ({ ticker, type: "BONOS", settlement: "A-48HS" }));
 
 function fmtPrice(v: number | null) {
   if (v === null) return "-";
@@ -1094,7 +1097,7 @@ function TirsTab() {
       const res = await fetch("/api/yields", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ tickers: DEFAULT_TICKERS }),
+        body: JSON.stringify({ tickers: TICKERS_YIELDS }),
       });
       const data = (await res.json()) as YieldsResponse;
       if (!res.ok || data.error) throw new Error(data.error ?? `HTTP ${res.status}`);
@@ -1113,7 +1116,7 @@ function TirsTab() {
       const res = await fetch("/api/yields2", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ tickers: DEFAULT_TICKERS }),
+        body: JSON.stringify({ tickers: TICKERS_YIELDS2 }),
       });
       const data = (await res.json()) as Yields2Response;
       if (!res.ok || data.error) throw new Error(data.error ?? `HTTP ${res.status}`);
@@ -1161,7 +1164,7 @@ function TirsTab() {
 
         {loadingYields && (
           <div className="space-y-2">
-            {DEFAULT_TICKERS.map((t) => (
+            {TICKERS_YIELDS.map((t) => (
               <div key={t.ticker} className="h-8 bg-slate-100 rounded animate-pulse" />
             ))}
           </div>
@@ -1203,7 +1206,7 @@ function TirsTab() {
 
         {loadingYields2 && (
           <div className="space-y-2">
-            {DEFAULT_TICKERS.map((t) => (
+            {TICKERS_YIELDS2.map((t) => (
               <div key={t.ticker} className="h-8 bg-slate-100 rounded animate-pulse" />
             ))}
           </div>

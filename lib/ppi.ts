@@ -8,6 +8,10 @@ const BACKOFF_CAP_SEC = 6.0;
 
 export const SLEEP_BETWEEN_TICKERS_MS = 20;
 
+// Caché en memoria: clave = "ticker:price" → tir
+// Persiste mientras el proceso de Node esté activo (instancia caliente en Vercel)
+const tirCache = new Map<string, number | null>();
+
 function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
@@ -115,12 +119,17 @@ export async function getBook(
   return data;
 }
 
-// Retorna [tir, rawResponse] — rawResponse para debugging
+// Retorna { tir, raw, cached } — raw para debugging, cached indica si vino del caché
 export async function estimateBond(
   token: string,
   ticker: string,
   price: number,
-): Promise<{ tir: number | null; raw: unknown }> {
+): Promise<{ tir: number | null; raw: unknown; cached: boolean }> {
+  const cacheKey = `${ticker}:${price}`;
+  if (tirCache.has(cacheKey)) {
+    return { tir: tirCache.get(cacheKey) ?? null, raw: null, cached: true };
+  }
+
   const date = new Date().toISOString().slice(0, 10);
   const params = new URLSearchParams({
     ticker,
@@ -137,7 +146,6 @@ export async function estimateBond(
     throw new Error(`EstimateBond failed for ${ticker}: ${res.status} — ${body}`);
   }
   const data = await res.json() as unknown;
-  // Intentar extraer TIR de los campos más comunes
   const obj = data as Record<string, unknown>;
   const tir =
     typeof data === "number" ? data :
@@ -148,5 +156,7 @@ export async function estimateBond(
     typeof obj.tna === "number" ? obj.tna :
     typeof obj.tea === "number" ? obj.tea :
     null;
-  return { tir, raw: data };
+
+  tirCache.set(cacheKey, tir);
+  return { tir, raw: data, cached: false };
 }

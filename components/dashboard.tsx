@@ -1006,6 +1006,19 @@ type Yields2Response = YieldsResponse & {
   al30DUSD: number;
 };
 
+const VENCIMIENTOS: Record<string, string> = {
+  AFCID: "07/11/2026", ARC1D: "01/08/2031", BACGD: "23/06/2029", BGC4D: "13/11/2026",
+  BYCHD: "10/10/2028", BYCVD: "31/08/2026", CAC5D: "25/08/2028", CS38D: "03/03/2026",
+  CS47D: "15/11/2028", DNC3D: "22/11/2026", GN43D: "08/03/2027", IRCFD: "22/06/2028",
+  IRCLD: "10/06/2026", IRCND: "23/10/2027", IRCOD: "23/10/2029", LOC3D: "11/03/2026",
+  MGCND: "04/10/2028", MGCQD: "06/08/2028", PN35D: "27/09/2029", PN38D: "11/08/2027",
+  PN42D: "17/04/2027", RC2CD: "06/10/2026", RCCRD: "09/05/2027", T662D: "31/08/2026",
+  TLC1D: "18/07/2026", TLCMD: "18/07/2031", TLCOD: "28/11/2028", TLCQD: "02/07/2027",
+  VBC1D: "11/03/2027", VBC2D: "05/09/2026", VSCOD: "06/03/2027", VSCPD: "22/11/2029",
+  VSCWD: "-", YFCKD: "21/11/2026", YFCLD: "21/11/2028", YM37D: "07/05/2027",
+  YMCID: "30/06/2029", YMCVD: "28/05/2026", YMCYD: "10/10/2028",
+};
+
 const TICKERS_YIELDS = [
   "AFCID", "ARC1D", "BACGD", "BGC4D", "BYCHD", "BYCVD", "CAC5D", "CS38D", "CS47D", "DNC3D",
   "GN43D", "IRCFD", "IRCLD", "IRCND", "IRCOD", "LOC3D", "MGCND", "MGCQD", "PN35D", "PN38D",
@@ -1036,12 +1049,12 @@ function fmtQty(v: number | null) {
   return v.toLocaleString("es-AR");
 }
 
-function BondsTable({ rows }: { rows: BondRow[] }) {
+function BondsTable({ rows, getVencimiento }: { rows: BondRow[]; getVencimiento: (ticker: string) => string }) {
   const headers = [
     "TICKER", "ÚLTIMO", "TIR ÚLTIMO",
     "CANT COMPRA", "PRECIO COMPRA", "YIELD COMPRA",
     "YIELD VENTA", "PRECIO VENTA", "CANT VENTA",
-    "VOLUMEN",
+    "VOLUMEN", "VENCIMIENTO",
   ];
 
   return (
@@ -1060,7 +1073,7 @@ function BondsTable({ rows }: { rows: BondRow[] }) {
             <tr key={row.ticker} className="border-t hover:bg-slate-50 transition-colors">
               <td className="px-3 py-2 font-semibold text-slate-800">{row.ticker}</td>
               {row.error ? (
-                <td colSpan={9} className="px-3 py-2 text-red-500 text-xs">{row.error}</td>
+                <td colSpan={10} className="px-3 py-2 text-red-500 text-xs">{row.error}</td>
               ) : (
                 <>
                   <td className="px-3 py-2 text-right">{fmtPrice(row.lastPrice)}</td>
@@ -1072,6 +1085,7 @@ function BondsTable({ rows }: { rows: BondRow[] }) {
                   <td className="px-3 py-2 text-right">{fmtPrice(row.askPx)}</td>
                   <td className="px-3 py-2 text-right text-slate-500">{fmtQty(row.askQty)}</td>
                   <td className="px-3 py-2 text-right text-slate-500">{fmtQty(row.volume)}</td>
+                  <td className="px-3 py-2 text-right text-slate-500 whitespace-nowrap">{getVencimiento(row.ticker)}</td>
                 </>
               )}
             </tr>
@@ -1153,7 +1167,7 @@ function TirsTab() {
         )}
 
         {yields?.results ? (
-          <BondsTable rows={yields.results} />
+          <BondsTable rows={yields.results} getVencimiento={(t) => VENCIMIENTOS[t] ?? "-"} />
         ) : (
           !loadingYields && (
             <p className="text-sm text-slate-400 text-center py-8 border border-dashed rounded-lg">
@@ -1195,7 +1209,7 @@ function TirsTab() {
         )}
 
         {yields2?.results ? (
-          <BondsTable rows={yields2.results} />
+          <BondsTable rows={yields2.results} getVencimiento={(t) => VENCIMIENTOS[t.slice(0, -1) + "D"] ?? "-"} />
         ) : (
           !loadingYields2 && (
             <p className="text-sm text-slate-400 text-center py-8 border border-dashed rounded-lg">

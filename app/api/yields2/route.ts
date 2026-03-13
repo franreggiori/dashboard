@@ -1,21 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
-
-const PPI_BASE = "https://clientapi.portfoliopersonal.com";
-
-const PPI_HEADERS = {
-  "AuthorizedClient": "API_CLI_REST",
-  "ClientKey": "pp19CliApp12",
-  "Accept": "application/json",
-};
+import { loginPPI, detectInstrumentType, getCurrent, getBook, estimateBond } from "@/lib/ppi";
 
 type TickerInput = {
   ticker: string;
-  type?: string;
   settlement?: string;
 };
 
 type BondResult = {
   ticker: string;
+  type: string | null;
   ultimo: number | null;
   tirUltimo: number | null;
   cantCompra: number | null;
@@ -27,89 +20,6 @@ type BondResult = {
   volumen: number | null;
   error: string | null;
 };
-
-type CurrentResponse = {
-  price?: number;
-  quantity?: number;
-  tradedQuantity?: number;
-  volume?: number;
-};
-
-type BookEntry = {
-  price?: number;
-  quantity?: number;
-  size?: number;
-};
-
-type BookResponse = {
-  bids?: BookEntry[];
-  asks?: BookEntry[];
-};
-
-type EstimateBondResponse = {
-  yield?: number;
-  tir?: number;
-};
-
-async function loginPPI(): Promise<string> {
-  const res = await fetch(`${PPI_BASE}/api/1.0/Account/LoginApi`, {
-    method: "POST",
-    headers: {
-      ...PPI_HEADERS,
-      "ApiKey": process.env.PPI_PUBLIC_KEY ?? "",
-      "ApiSecret": process.env.PPI_PRIVATE_KEY ?? "",
-    },
-  });
-  if (!res.ok) throw new Error(`PPI login failed: ${res.status}`);
-  const data = (await res.json()) as { accessToken: string };
-  return data.accessToken;
-}
-
-async function getCurrent(token: string, ticker: string, type: string, settlement: string): Promise<CurrentResponse> {
-  const url = `${PPI_BASE}/api/1.0/MarketData/Current?ticker=${encodeURIComponent(ticker)}&type=${encodeURIComponent(type)}&settlement=${encodeURIComponent(settlement)}`;
-  const res = await fetch(url, {
-    headers: { ...PPI_HEADERS, "Authorization": `Bearer ${token}` },
-  });
-  if (!res.ok) {
-    const body = await res.text();
-    throw new Error(`Current failed for ${ticker}: ${res.status} — ${body}`);
-  }
-  return res.json() as Promise<CurrentResponse>;
-}
-
-async function getBook(token: string, ticker: string, type: string, settlement: string): Promise<BookResponse> {
-  const url = `${PPI_BASE}/api/1.0/MarketData/Book?ticker=${encodeURIComponent(ticker)}&type=${encodeURIComponent(type)}&settlement=${encodeURIComponent(settlement)}`;
-  const res = await fetch(url, {
-    headers: { ...PPI_HEADERS, "Authorization": `Bearer ${token}` },
-  });
-  if (!res.ok) {
-    const body = await res.text();
-    throw new Error(`Book failed for ${ticker}: ${res.status} — ${body}`);
-  }
-  return res.json() as Promise<BookResponse>;
-}
-
-async function estimateBond(
-  token: string,
-  ticker: string,
-  type: string,
-  price: number,
-  settlement: string,
-): Promise<number | null> {
-  const res = await fetch(`${PPI_BASE}/api/1.0/MarketData/EstimateBond`, {
-    method: "POST",
-    headers: {
-      ...PPI_HEADERS,
-      "Authorization": `Bearer ${token}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({ ticker, type, price, settlement }),
-  });
-  if (!res.ok) return null;
-  const data = (await res.json()) as EstimateBondResponse | number;
-  if (typeof data === "number") return data;
-  return data.yield ?? data.tir ?? null;
-}
 
 export async function POST(req: NextRequest) {
   try {
@@ -138,8 +48,11 @@ export async function POST(req: NextRequest) {
     const mepRatio = al30.price / al30d.price;
 
     const results: BondResult[] = await Promise.all(
-      tickers.map(async ({ ticker, type = "BONOS", settlement = "A-48HS" }) => {
+      tickers.map(async ({ ticker, settlement = "A-48HS" }) => {
         try {
+          const type = await detectInstrumentType(token, ticker, settlement);
+          if (!type) throw new Error(`Instrument not found: ${ticker}`);
+
           const [current, book] = await Promise.all([
             getCurrent(token, ticker, type, settlement),
             getBook(token, ticker, type, settlement),
@@ -166,33 +79,9 @@ export async function POST(req: NextRequest) {
             precioVenta !== null ? estimateBond(token, ticker, type, precioVenta, settlement) : Promise.resolve(null),
           ]);
 
-          return {
-            ticker,
-            ultimo,
-            tirUltimo,
-            cantCompra,
-            precioCompra,
-            yieldCompra,
-            yieldVenta,
-            precioVenta,
-            cantVenta,
-            volumen,
-            error: null,
-          };
+          return { ticker, type, ultimo, tirUltimo, cantCompra, precioCompra, yieldCompra, yieldVenta, precioVenta, cantVenta, volumen, error: null };
         } catch (err) {
-          return {
-            ticker,
-            ultimo: null,
-            tirUltimo: null,
-            cantCompra: null,
-            precioCompra: null,
-            yieldCompra: null,
-            yieldVenta: null,
-            precioVenta: null,
-            cantVenta: null,
-            volumen: null,
-            error: err instanceof Error ? err.message : "Error desconocido",
-          };
+          return { ticker, type: null, ultimo: null, tirUltimo: null, cantCompra: null, precioCompra: null, yieldCompra: null, yieldVenta: null, precioVenta: null, cantVenta: null, volumen: null, error: err instanceof Error ? err.message : "Error desconocido" };
         }
       }),
     );

@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 
-type TabKey = "cumples" | "prospects" | "carteras" | "crm" | "mercado" | "instrumentos" | "noticias";
+type TabKey = "cumples" | "prospects" | "carteras" | "crm" | "mercado" | "instrumentos" | "noticias" | "tirs";
 
 type ProspectEstado = "PENDIENTE" | "CONTACTADO" | "EN_SEGUIMIENTO" | "NEGOCIACION" | "CERRADO" | "PERDIDO";
 
@@ -65,6 +65,7 @@ const NAV_ITEMS: [TabKey, string][] = [
   ["mercado", "📈 Mercado"],
   ["instrumentos", "🏦 Instrumentos"],
   ["noticias", "📰 Noticias"],
+  ["tirs", "📊 TIRs"],
 ];
 
 export default function Dashboard() {
@@ -103,6 +104,7 @@ export default function Dashboard() {
         {tab === "mercado" && <MercadoTab />}
         {tab === "instrumentos" && <InstrumentosTab />}
         {tab === "noticias" && <NoticiasTab />}
+        {tab === "tirs" && <TirsTab />}
       </main>
     </div>
   );
@@ -972,6 +974,241 @@ function NoticiasTab() {
       {!loading && items.length === 0 && !error && (
         <p className="text-sm text-slate-400 text-center py-8">No recent news found in the last 48 hours.</p>
       )}
+    </section>
+  );
+}
+
+// ─── TIRs ────────────────────────────────────────────────────────────────────
+
+type BondRow = {
+  ticker: string;
+  ultimo: number | null;
+  tirUltimo: number | null;
+  cantCompra: number | null;
+  precioCompra: number | null;
+  yieldCompra: number | null;
+  yieldVenta: number | null;
+  precioVenta: number | null;
+  cantVenta: number | null;
+  volumen: number | null;
+  error: string | null;
+};
+
+type YieldsResponse = {
+  results: BondRow[];
+  updatedAt: string;
+  error?: string;
+};
+
+type Yields2Response = YieldsResponse & {
+  mepRatio: number;
+  al30ARS: number;
+  al30DUSD: number;
+};
+
+const DEFAULT_TICKERS = [
+  { ticker: "AL29", type: "BONOS", settlement: "48hs" },
+  { ticker: "AL30", type: "BONOS", settlement: "48hs" },
+  { ticker: "AL35", type: "BONOS", settlement: "48hs" },
+  { ticker: "AL41", type: "BONOS", settlement: "48hs" },
+  { ticker: "GD29", type: "BONOS", settlement: "48hs" },
+  { ticker: "GD30", type: "BONOS", settlement: "48hs" },
+  { ticker: "GD35", type: "BONOS", settlement: "48hs" },
+  { ticker: "GD41", type: "BONOS", settlement: "48hs" },
+];
+
+function fmtPrice(v: number | null) {
+  if (v === null) return "-";
+  return v.toLocaleString("es-AR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+function fmtYield(v: number | null) {
+  if (v === null) return "-";
+  const pct = v * 100;
+  return `${pct.toFixed(2)}%`;
+}
+
+function fmtQty(v: number | null) {
+  if (v === null) return "-";
+  return v.toLocaleString("es-AR");
+}
+
+function BondsTable({ rows }: { rows: BondRow[] }) {
+  const headers = [
+    "TICKER", "ÚLTIMO", "TIR ÚLTIMO",
+    "CANT COMPRA", "PRECIO COMPRA", "YIELD COMPRA",
+    "YIELD VENTA", "PRECIO VENTA", "CANT VENTA",
+    "VOLUMEN",
+  ];
+
+  return (
+    <div className="overflow-x-auto rounded-lg border border-slate-200">
+      <table className="w-full text-sm">
+        <thead>
+          <tr className="bg-slate-100 text-slate-600 text-right">
+            <th className="px-3 py-2 font-semibold text-left">TICKER</th>
+            {headers.slice(1).map((h) => (
+              <th key={h} className="px-3 py-2 font-semibold whitespace-nowrap">{h}</th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((row) => (
+            <tr key={row.ticker} className="border-t hover:bg-slate-50 transition-colors">
+              <td className="px-3 py-2 font-semibold text-slate-800">{row.ticker}</td>
+              {row.error ? (
+                <td colSpan={9} className="px-3 py-2 text-red-500 text-xs">{row.error}</td>
+              ) : (
+                <>
+                  <td className="px-3 py-2 text-right">{fmtPrice(row.ultimo)}</td>
+                  <td className="px-3 py-2 text-right font-medium text-blue-700">{fmtYield(row.tirUltimo)}</td>
+                  <td className="px-3 py-2 text-right text-slate-500">{fmtQty(row.cantCompra)}</td>
+                  <td className="px-3 py-2 text-right">{fmtPrice(row.precioCompra)}</td>
+                  <td className="px-3 py-2 text-right font-medium text-emerald-700">{fmtYield(row.yieldCompra)}</td>
+                  <td className="px-3 py-2 text-right font-medium text-rose-700">{fmtYield(row.yieldVenta)}</td>
+                  <td className="px-3 py-2 text-right">{fmtPrice(row.precioVenta)}</td>
+                  <td className="px-3 py-2 text-right text-slate-500">{fmtQty(row.cantVenta)}</td>
+                  <td className="px-3 py-2 text-right text-slate-500">{fmtQty(row.volumen)}</td>
+                </>
+              )}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+function TirsTab() {
+  const [yields, setYields] = useState<YieldsResponse | null>(null);
+  const [yields2, setYields2] = useState<Yields2Response | null>(null);
+  const [loadingYields, setLoadingYields] = useState(false);
+  const [loadingYields2, setLoadingYields2] = useState(false);
+  const [errorYields, setErrorYields] = useState<string | null>(null);
+  const [errorYields2, setErrorYields2] = useState<string | null>(null);
+
+  async function fetchYields() {
+    setLoadingYields(true);
+    setErrorYields(null);
+    try {
+      const res = await fetch("/api/yields", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ tickers: DEFAULT_TICKERS }),
+      });
+      const data = (await res.json()) as YieldsResponse;
+      if (!res.ok || data.error) throw new Error(data.error ?? `HTTP ${res.status}`);
+      setYields(data);
+    } catch (err) {
+      setErrorYields(err instanceof Error ? err.message : "Error inesperado");
+    } finally {
+      setLoadingYields(false);
+    }
+  }
+
+  async function fetchYields2() {
+    setLoadingYields2(true);
+    setErrorYields2(null);
+    try {
+      const res = await fetch("/api/yields2", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ tickers: DEFAULT_TICKERS }),
+      });
+      const data = (await res.json()) as Yields2Response;
+      if (!res.ok || data.error) throw new Error(data.error ?? `HTTP ${res.status}`);
+      setYields2(data);
+    } catch (err) {
+      setErrorYields2(err instanceof Error ? err.message : "Error inesperado");
+    } finally {
+      setLoadingYields2(false);
+    }
+  }
+
+  return (
+    <section className="space-y-8">
+      <h2 className="text-xl font-bold text-slate-800">TIRs de Bonos</h2>
+
+      {/* Yields */}
+      <div className="space-y-3">
+        <div className="flex items-center justify-between">
+          <div>
+            <h3 className="font-semibold text-slate-700">Yields (precio ARS)</h3>
+            {yields?.updatedAt && (
+              <p className="text-xs text-slate-400 mt-0.5">
+                Actualizado {new Date(yields.updatedAt).toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
+              </p>
+            )}
+          </div>
+          <Button variant="outline" onClick={fetchYields} disabled={loadingYields}>
+            {loadingYields ? "Cargando…" : "Actualizar Yields"}
+          </Button>
+        </div>
+
+        {errorYields && (
+          <p className="text-sm text-red-600 bg-red-50 rounded-lg px-3 py-2">{errorYields}</p>
+        )}
+
+        {yields?.results ? (
+          <BondsTable rows={yields.results} />
+        ) : (
+          !loadingYields && (
+            <p className="text-sm text-slate-400 text-center py-8 border border-dashed rounded-lg">
+              Presioná "Actualizar Yields" para cargar los datos.
+            </p>
+          )
+        )}
+
+        {loadingYields && (
+          <div className="space-y-2">
+            {DEFAULT_TICKERS.map((t) => (
+              <div key={t.ticker} className="h-8 bg-slate-100 rounded animate-pulse" />
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Yields2 */}
+      <div className="space-y-3">
+        <div className="flex items-center justify-between">
+          <div>
+            <h3 className="font-semibold text-slate-700">Yields2 (precio ajustado por ratio MEP: AL30 / AL30D)</h3>
+            {yields2?.updatedAt && (
+              <p className="text-xs text-slate-400 mt-0.5">
+                Actualizado {new Date(yields2.updatedAt).toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
+                {yields2.mepRatio != null && (
+                  <> · Ratio MEP: <span className="font-medium text-slate-600">{yields2.mepRatio.toFixed(2)}</span> (AL30 ${yields2.al30ARS?.toFixed(2)} / AL30D ${yields2.al30DUSD?.toFixed(2)})</>
+                )}
+              </p>
+            )}
+          </div>
+          <Button variant="outline" onClick={fetchYields2} disabled={loadingYields2}>
+            {loadingYields2 ? "Cargando…" : "Actualizar Yields2"}
+          </Button>
+        </div>
+
+        {errorYields2 && (
+          <p className="text-sm text-red-600 bg-red-50 rounded-lg px-3 py-2">{errorYields2}</p>
+        )}
+
+        {yields2?.results ? (
+          <BondsTable rows={yields2.results} />
+        ) : (
+          !loadingYields2 && (
+            <p className="text-sm text-slate-400 text-center py-8 border border-dashed rounded-lg">
+              Presioná "Actualizar Yields2" para cargar los datos.
+            </p>
+          )
+        )}
+
+        {loadingYields2 && (
+          <div className="space-y-2">
+            {DEFAULT_TICKERS.map((t) => (
+              <div key={t.ticker} className="h-8 bg-slate-100 rounded animate-pulse" />
+            ))}
+          </div>
+        )}
+      </div>
     </section>
   );
 }

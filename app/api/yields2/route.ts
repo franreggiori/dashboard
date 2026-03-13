@@ -2,6 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 
 const PPI_BASE = "https://clientapi.portfoliopersonal.com";
 
+const PPI_HEADERS = {
+  "AuthorizedClient": "API_CLI_REST",
+  "ClientKey": "pp19CliApp12",
+};
+
 type TickerInput = {
   ticker: string;
   type?: string;
@@ -49,8 +54,7 @@ async function loginPPI(): Promise<string> {
   const res = await fetch(`${PPI_BASE}/api/1.0/Account/LoginApi`, {
     method: "POST",
     headers: {
-      "AuthorizedClient": "API_CLI_REST",
-      "ClientKey": "pp19CliApp12",
+      ...PPI_HEADERS,
       "ApiKey": process.env.PPI_PUBLIC_KEY ?? "",
       "ApiSecret": process.env.PPI_PRIVATE_KEY ?? "",
     },
@@ -60,16 +64,20 @@ async function loginPPI(): Promise<string> {
   return data.accessToken;
 }
 
-async function getCurrent(token: string, ticker: string, type: string): Promise<CurrentResponse> {
-  const url = `${PPI_BASE}/api/1.0/MarketData/Current?ticker=${encodeURIComponent(ticker)}&type=${encodeURIComponent(type)}`;
-  const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
+async function getCurrent(token: string, ticker: string, type: string, settlement: string): Promise<CurrentResponse> {
+  const url = `${PPI_BASE}/api/1.0/MarketData/Current?ticker=${encodeURIComponent(ticker)}&type=${encodeURIComponent(type)}&settlement=${encodeURIComponent(settlement)}`;
+  const res = await fetch(url, {
+    headers: { ...PPI_HEADERS, "Authorization": `Bearer ${token}` },
+  });
   if (!res.ok) throw new Error(`Current failed for ${ticker}: ${res.status}`);
   return res.json() as Promise<CurrentResponse>;
 }
 
-async function getBook(token: string, ticker: string, type: string): Promise<BookResponse> {
-  const url = `${PPI_BASE}/api/1.0/MarketData/Book?ticker=${encodeURIComponent(ticker)}&type=${encodeURIComponent(type)}`;
-  const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
+async function getBook(token: string, ticker: string, type: string, settlement: string): Promise<BookResponse> {
+  const url = `${PPI_BASE}/api/1.0/MarketData/Book?ticker=${encodeURIComponent(ticker)}&type=${encodeURIComponent(type)}&settlement=${encodeURIComponent(settlement)}`;
+  const res = await fetch(url, {
+    headers: { ...PPI_HEADERS, "Authorization": `Bearer ${token}` },
+  });
   if (!res.ok) throw new Error(`Book failed for ${ticker}: ${res.status}`);
   return res.json() as Promise<BookResponse>;
 }
@@ -84,7 +92,8 @@ async function estimateBond(
   const res = await fetch(`${PPI_BASE}/api/1.0/MarketData/EstimateBond`, {
     method: "POST",
     headers: {
-      Authorization: `Bearer ${token}`,
+      ...PPI_HEADERS,
+      "Authorization": `Bearer ${token}`,
       "Content-Type": "application/json",
     },
     body: JSON.stringify({ ticker, type, price, settlement }),
@@ -108,8 +117,8 @@ export async function POST(req: NextRequest) {
 
     // Calcular ratio MEP implícito: AL30 (ARS) / AL30D (USD)
     const [al30, al30d] = await Promise.all([
-      getCurrent(token, "AL30", "BONOS"),
-      getCurrent(token, "AL30D", "BONOS"),
+      getCurrent(token, "AL30", "BONOS", "A-48HS"),
+      getCurrent(token, "AL30D", "BONOS", "A-48HS"),
     ]);
 
     if (!al30.price || !al30d.price) {
@@ -122,11 +131,11 @@ export async function POST(req: NextRequest) {
     const mepRatio = al30.price / al30d.price;
 
     const results: BondResult[] = await Promise.all(
-      tickers.map(async ({ ticker, type = "BONOS", settlement = "48hs" }) => {
+      tickers.map(async ({ ticker, type = "BONOS", settlement = "A-48HS" }) => {
         try {
           const [current, book] = await Promise.all([
-            getCurrent(token, ticker, type),
-            getBook(token, ticker, type),
+            getCurrent(token, ticker, type, settlement),
+            getBook(token, ticker, type, settlement),
           ]);
 
           const ultimoARS = current.price ?? null;

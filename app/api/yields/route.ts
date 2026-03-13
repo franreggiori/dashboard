@@ -53,9 +53,9 @@ export async function POST(req: NextRequest) {
           const cantVenta = bestAsk?.quantity ?? bestAsk?.size ?? null;
 
           const [tirUltimo, yieldCompra, yieldVenta] = await Promise.all([
-            ultimo !== null ? estimateBond(token, ticker, type, ultimo, settlement) : Promise.resolve(null),
-            precioCompra !== null ? estimateBond(token, ticker, type, precioCompra, settlement) : Promise.resolve(null),
-            precioVenta !== null ? estimateBond(token, ticker, type, precioVenta, settlement) : Promise.resolve(null),
+            ultimo !== null ? estimateBond(token, ticker, ultimo) : Promise.resolve(null),
+            precioCompra !== null ? estimateBond(token, ticker, precioCompra) : Promise.resolve(null),
+            precioVenta !== null ? estimateBond(token, ticker, precioVenta) : Promise.resolve(null),
           ]);
 
           return { ticker, type, ultimo, tirUltimo, cantCompra, precioCompra, yieldCompra, yieldVenta, precioVenta, cantVenta, volumen, error: null };

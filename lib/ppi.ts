@@ -97,10 +97,9 @@ export async function getBook(
 export async function estimateBond(
   token: string,
   ticker: string,
-  type: string,
   price: number,
-  settlement: string,
 ): Promise<number | null> {
+  const date = new Date().toISOString().slice(0, 10);
   const res = await fetch(`${PPI_BASE}/api/1.0/MarketData/EstimateBond`, {
     method: "POST",
     headers: {
@@ -108,9 +107,12 @@ export async function estimateBond(
       "Authorization": `Bearer ${token}`,
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({ ticker, type, price, settlement }),
+    body: JSON.stringify({ ticker, date, quantityType: "PAPELES", quantity: 100, price }),
   });
-  if (!res.ok) return null;
+  if (!res.ok) {
+    const body = await res.text();
+    throw new Error(`EstimateBond failed for ${ticker}: ${res.status} — ${body}`);
+  }
   const data = (await res.json()) as EstimateBondResponse | number;
   if (typeof data === "number") return data;
   return data.yield ?? data.tir ?? null;

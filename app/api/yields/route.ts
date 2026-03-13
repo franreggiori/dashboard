@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { loginPPI, detectInstrumentType, getCurrent, getBook, estimateBond } from "@/lib/ppi";
+import { loginPPI, getCurrent, getBook, estimateBond } from "@/lib/ppi";
 
 type TickerInput = {
   ticker: string;
@@ -35,8 +35,7 @@ export async function POST(req: NextRequest) {
     const results: BondResult[] = await Promise.all(
       tickers.map(async ({ ticker, settlement = "A-48HS" }) => {
         try {
-          const type = await detectInstrumentType(token, ticker, settlement);
-          if (!type) throw new Error(`Instrument not found: ${ticker}`);
+          const type = "ON";
 
           const [current, book] = await Promise.all([
             getCurrent(token, ticker, type, settlement),

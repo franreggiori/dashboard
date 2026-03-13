@@ -1154,7 +1154,7 @@ function TirsTab() {
         ) : (
           !loadingYields && (
             <p className="text-sm text-slate-400 text-center py-8 border border-dashed rounded-lg">
-              Presioná "Actualizar Yields" para cargar los datos.
+              Presioná &quot;Actualizar Yields&quot; para cargar los datos.
             </p>
           )
         )}
@@ -1196,7 +1196,7 @@ function TirsTab() {
         ) : (
           !loadingYields2 && (
             <p className="text-sm text-slate-400 text-center py-8 border border-dashed rounded-lg">
-              Presioná "Actualizar Yields2" para cargar los datos.
+              Presioná &quot;Actualizar Yields2&quot; para cargar los datos.
             </p>
           )
         )}

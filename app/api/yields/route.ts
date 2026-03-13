@@ -49,14 +49,11 @@ async function loginPPI(): Promise<string> {
   const res = await fetch(`${PPI_BASE}/api/1.0/Account/LoginApi`, {
     method: "POST",
     headers: {
-      "Content-Type": "application/json",
       "AuthorizedClient": "API_CLI_REST",
       "ClientKey": "pp19CliApp12",
+      "ApiKey": process.env.PPI_PUBLIC_KEY ?? "",
+      "ApiSecret": process.env.PPI_PRIVATE_KEY ?? "",
     },
-    body: JSON.stringify({
-      publicKey: process.env.PPI_PUBLIC_KEY,
-      privateKey: process.env.PPI_PRIVATE_KEY,
-    }),
   });
   if (!res.ok) throw new Error(`PPI login failed: ${res.status}`);
   const data = (await res.json()) as { accessToken: string };

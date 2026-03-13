@@ -18,6 +18,7 @@ type BondResult = {
   precioVenta: number | null;
   cantVenta: number | null;
   volumen: number | null;
+  debugEstimate: unknown;
   error: string | null;
 };
 
@@ -60,27 +61,42 @@ export async function POST(req: NextRequest) {
           const ultimoARS = current.price ?? null;
           const volumen = current.quantity ?? current.tradedQuantity ?? current.volume ?? null;
 
+          // PPI usa "bids" para compradora y "offers" para vendedora
           const bestBid = book.bids?.[0] ?? null;
-          const bestAsk = book.asks?.[0] ?? null;
+          const bestOffer = book.offers?.[0] ?? book.asks?.[0] ?? null;
           const precioCompraARS = bestBid?.price ?? null;
           const cantCompra = bestBid?.quantity ?? bestBid?.size ?? null;
-          const precioVentaARS = bestAsk?.price ?? null;
-          const cantVenta = bestAsk?.quantity ?? bestAsk?.size ?? null;
+          const precioVentaARS = bestOffer?.price ?? null;
+          const cantVenta = bestOffer?.quantity ?? bestOffer?.size ?? null;
 
           // Convertir precios ARS a USD dividiendo por el ratio MEP
           const ultimo = ultimoARS !== null ? ultimoARS / mepRatio : null;
           const precioCompra = precioCompraARS !== null ? precioCompraARS / mepRatio : null;
           const precioVenta = precioVentaARS !== null ? precioVentaARS / mepRatio : null;
 
-          const [tirUltimo, yieldCompra, yieldVenta] = await Promise.all([
+          const [resUltimo, resCompra, resVenta] = await Promise.all([
             ultimo !== null ? estimateBond(token, ticker, ultimo) : Promise.resolve(null),
             precioCompra !== null ? estimateBond(token, ticker, precioCompra) : Promise.resolve(null),
             precioVenta !== null ? estimateBond(token, ticker, precioVenta) : Promise.resolve(null),
           ]);
 
-          return { ticker, type, ultimo, tirUltimo, cantCompra, precioCompra, yieldCompra, yieldVenta, precioVenta, cantVenta, volumen, error: null };
+          return {
+            ticker, type, ultimo, volumen,
+            cantCompra, precioCompra,
+            cantVenta, precioVenta,
+            tirUltimo: resUltimo?.tir ?? null,
+            yieldCompra: resCompra?.tir ?? null,
+            yieldVenta: resVenta?.tir ?? null,
+            debugEstimate: resUltimo?.raw ?? null,
+            error: null,
+          };
         } catch (err) {
-          return { ticker, type: null, ultimo: null, tirUltimo: null, cantCompra: null, precioCompra: null, yieldCompra: null, yieldVenta: null, precioVenta: null, cantVenta: null, volumen: null, error: err instanceof Error ? err.message : "Error desconocido" };
+          return {
+            ticker, type: null, ultimo: null, tirUltimo: null, cantCompra: null,
+            precioCompra: null, yieldCompra: null, yieldVenta: null, precioVenta: null,
+            cantVenta: null, volumen: null, debugEstimate: null,
+            error: err instanceof Error ? err.message : "Error desconocido",
+          };
         }
       }),
     );

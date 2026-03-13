@@ -22,13 +22,11 @@ export type BookEntry = {
 };
 
 export type BookResponse = {
+  // PPI usa "bids" para compradora y "offers" para vendedora
   bids?: BookEntry[];
+  offers?: BookEntry[];
+  // por si acaso usa asks
   asks?: BookEntry[];
-};
-
-export type EstimateBondResponse = {
-  yield?: number;
-  tir?: number;
 };
 
 export async function loginPPI(): Promise<string> {
@@ -91,29 +89,42 @@ export async function getBook(
     const body = await res.text();
     throw new Error(`Book failed for ${ticker}: ${res.status} — ${body}`);
   }
-  return res.json() as Promise<BookResponse>;
+  const data = await res.json() as BookResponse;
+  return data;
 }
 
+// Retorna [tir, rawResponse] — rawResponse para debugging
 export async function estimateBond(
   token: string,
   ticker: string,
   price: number,
-): Promise<number | null> {
+): Promise<{ tir: number | null; raw: unknown }> {
   const date = new Date().toISOString().slice(0, 10);
-  const res = await fetch(`${PPI_BASE}/api/1.0/MarketData/EstimateBond`, {
-    method: "POST",
-    headers: {
-      ...PPI_HEADERS,
-      "Authorization": `Bearer ${token}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({ ticker, date, quantityType: "PAPELES", quantity: 100, price }),
+  const params = new URLSearchParams({
+    ticker,
+    date,
+    quantityType: "PAPELES",
+    quantity: "100",
+    price: String(price),
+  });
+  const res = await fetch(`${PPI_BASE}/api/1.0/MarketData/Bonds/Estimate?${params}`, {
+    headers: { ...PPI_HEADERS, "Authorization": `Bearer ${token}` },
   });
   if (!res.ok) {
     const body = await res.text();
     throw new Error(`EstimateBond failed for ${ticker}: ${res.status} — ${body}`);
   }
-  const data = (await res.json()) as EstimateBondResponse | number;
-  if (typeof data === "number") return data;
-  return data.yield ?? data.tir ?? null;
+  const data = await res.json() as unknown;
+  // Intentar extraer TIR de los campos más comunes
+  const obj = data as Record<string, unknown>;
+  const tir =
+    typeof data === "number" ? data :
+    typeof obj.tir === "number" ? obj.tir :
+    typeof obj.yield === "number" ? obj.yield :
+    typeof obj.rate === "number" ? obj.rate :
+    typeof obj.internalRate === "number" ? obj.internalRate :
+    typeof obj.tna === "number" ? obj.tna :
+    typeof obj.tea === "number" ? obj.tea :
+    null;
+  return { tir, raw: data };
 }

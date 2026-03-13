@@ -48,7 +48,11 @@ type EstimateBondResponse = {
 async function loginPPI(): Promise<string> {
   const res = await fetch(`${PPI_BASE}/api/1.0/Account/LoginApi`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: {
+      "Content-Type": "application/json",
+      "AuthorizedClient": "API_CLI_REST",
+      "ClientKey": "pp19CliApp12",
+    },
     body: JSON.stringify({
       publicKey: process.env.PUBLIC_KEY,
       privateKey: process.env.PRIVATE_KEY,

@@ -5,6 +5,7 @@ const PPI_BASE = "https://clientapi.portfoliopersonal.com";
 const PPI_HEADERS = {
   "AuthorizedClient": "API_CLI_REST",
   "ClientKey": "pp19CliApp12",
+  "Accept": "application/json",
 };
 
 type TickerInput = {
@@ -69,7 +70,10 @@ async function getCurrent(token: string, ticker: string, type: string, settlemen
   const res = await fetch(url, {
     headers: { ...PPI_HEADERS, "Authorization": `Bearer ${token}` },
   });
-  if (!res.ok) throw new Error(`Current failed for ${ticker}: ${res.status}`);
+  if (!res.ok) {
+    const body = await res.text();
+    throw new Error(`Current failed for ${ticker}: ${res.status} — ${body}`);
+  }
   return res.json() as Promise<CurrentResponse>;
 }
 
@@ -78,7 +82,10 @@ async function getBook(token: string, ticker: string, type: string, settlement: 
   const res = await fetch(url, {
     headers: { ...PPI_HEADERS, "Authorization": `Bearer ${token}` },
   });
-  if (!res.ok) throw new Error(`Book failed for ${ticker}: ${res.status}`);
+  if (!res.ok) {
+    const body = await res.text();
+    throw new Error(`Book failed for ${ticker}: ${res.status} — ${body}`);
+  }
   return res.json() as Promise<BookResponse>;
 }
 

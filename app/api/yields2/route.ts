@@ -54,8 +54,8 @@ async function loginPPI(): Promise<string> {
       "ClientKey": "pp19CliApp12",
     },
     body: JSON.stringify({
-      publicKey: process.env.PUBLIC_KEY,
-      privateKey: process.env.PRIVATE_KEY,
+      publicKey: process.env.PPI_PUBLIC_KEY,
+      privateKey: process.env.PPI_PRIVATE_KEY,
     }),
   });
   if (!res.ok) throw new Error(`PPI login failed: ${res.status}`);

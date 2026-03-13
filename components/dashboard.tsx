@@ -1136,7 +1136,7 @@ function TirsTab() {
       <div className="space-y-3">
         <div className="flex items-center justify-between">
           <div>
-            <h3 className="font-semibold text-slate-700">Yields (precio ARS)</h3>
+            <h3 className="font-semibold text-slate-700">Yields</h3>
             {yields?.updatedAt && (
               <p className="text-xs text-slate-400 mt-0.5">
                 Actualizado {new Date(yields.updatedAt).toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit", second: "2-digit" })}

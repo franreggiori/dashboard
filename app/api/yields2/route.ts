@@ -122,8 +122,11 @@ export async function POST(req: NextRequest) {
         await sleep(SLEEP_TICKERS_MS);
         const yAsk    = askPxUSD     !== null ? await getTir(token, ticker, askPxUSD)     : null;
 
-        // Tabla muestra precios ARS originales
-        results.push({ ticker, lastPrice: lastPriceARS, volume, bidPx: bidPxARS, bidQty, askPx: askPxARS, askQty, tirLast, yBid, yAsk, error: null });
+        // Precios ARS originales en la respuesta (el ratio solo se usó para EstimateBond)
+        const lastPrice = lastPriceARS;
+        const bidPx     = bidPxARS;
+        const askPx     = askPxARS;
+        results.push({ ticker, lastPrice, volume, bidPx, bidQty, askPx, askQty, tirLast, yBid, yAsk, error: null });
       } catch (err) {
         results.push({ ticker, lastPrice: null, volume: null, bidPx: null, bidQty: null, askPx: null, askQty: null, tirLast: null, yBid: null, yAsk: null, error: err instanceof Error ? err.message : "Error desconocido" });
       }

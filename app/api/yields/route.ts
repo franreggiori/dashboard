@@ -118,11 +118,11 @@ export async function POST(req: NextRequest) {
         const askQty    = typeof offers[0]?.quantity === "number" ? (offers[0].quantity as number) : null;
 
         await sleep(SLEEP_TICKERS_MS);
-        const tirLast = lastPrice !== null ? await getTir(token, ticker, lastPrice) : null;
+        const tirLast = lastPrice > 0 ? await getTir(token, ticker, lastPrice) : null;
         await sleep(SLEEP_TICKERS_MS);
-        const yBid    = bidPx     !== null ? await getTir(token, ticker, bidPx)     : null;
+        const yBid    = bidPx     > 0 ? await getTir(token, ticker, bidPx)     : null;
         await sleep(SLEEP_TICKERS_MS);
-        const yAsk    = askPx     !== null ? await getTir(token, ticker, askPx)     : null;
+        const yAsk    = askPx     > 0 ? await getTir(token, ticker, askPx)     : null;
 
         results.push({ ticker, lastPrice, volume, bidPx, bidQty, askPx, askQty, tirLast, yBid, yAsk, error: null });
       } catch (err) {

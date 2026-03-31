@@ -136,11 +136,11 @@ export async function POST(req: NextRequest) {
         const askPxUSD     = askPxARS     !== null ? askPxARS     / mepRatio : null;
 
         await sleep(SLEEP_TICKERS_MS);
-        const tirLast = lastPriceUSD !== null ? await getTir(token, ticker, lastPriceUSD) : null;
+        const tirLast = lastPriceUSD > 0 ? await getTir(token, ticker, lastPriceUSD) : null;
         await sleep(SLEEP_TICKERS_MS);
-        const yBid    = bidPxUSD     !== null ? await getTir(token, ticker, bidPxUSD)     : null;
+        const yBid    = bidPxUSD     > 0 ? await getTir(token, ticker, bidPxUSD)     : null;
         await sleep(SLEEP_TICKERS_MS);
-        const yAsk    = askPxUSD     !== null ? await getTir(token, ticker, askPxUSD)     : null;
+        const yAsk    = askPxUSD     > 0 ? await getTir(token, ticker, askPxUSD)     : null;
 
         // Precios ARS originales en la respuesta (el ratio solo se usó para EstimateBond)
         const lastPrice = lastPriceARS;

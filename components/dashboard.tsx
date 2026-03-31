@@ -1080,8 +1080,8 @@ function BondsTable({ rows, getVencimiento }: { rows: BondRow[]; getVencimiento:
                   <td className="px-3 py-2 text-right font-medium text-blue-700">{fmtYield(row.tirLast)}</td>
                   <td className="px-3 py-2 text-right text-slate-500">{fmtQty(row.bidQty)}</td>
                   <td className="px-3 py-2 text-right">{fmtPrice(row.bidPx)}</td>
-                  <td className={`px-3 py-2 text-right font-medium ${row.yBid == null ? "" : row.yBid > 0.06 ? "text-emerald-700" : row.yBid <= 0.05 ? "text-red-600" : "text-slate-700"}`}>{fmtYield(row.yBid)}</td>
-                  <td className={`px-3 py-2 text-right font-medium ${row.yAsk == null ? "" : row.yAsk > 0.06 ? "text-emerald-700" : row.yAsk <= 0.05 ? "text-red-600" : "text-slate-700"}`}>{fmtYield(row.yAsk)}</td>
+                  <td className={`px-3 py-2 text-right font-medium ${row.yBid != null && row.yBid <= 0.05 ? "text-red-600" : "text-slate-700"}`}>{fmtYield(row.yBid)}</td>
+                  <td className={`px-3 py-2 text-right font-medium ${row.yAsk != null && row.yAsk > 0.06 ? "text-emerald-700" : "text-slate-700"}`}>{fmtYield(row.yAsk)}</td>
                   <td className="px-3 py-2 text-right">{fmtPrice(row.askPx)}</td>
                   <td className="px-3 py-2 text-right text-slate-500">{fmtQty(row.askQty)}</td>
                   <td className="px-3 py-2 text-right text-slate-500">{fmtQty(row.volume)}</td>

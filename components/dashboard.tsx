@@ -1097,12 +1097,32 @@ function BondsTable({ rows, getVencimiento }: { rows: BondRow[]; getVencimiento:
 }
 
 function TirsTab() {
-  const [yields, setYields] = useState<YieldsResponse | null>(null);
-  const [yields2, setYields2] = useState<Yields2Response | null>(null);
+  const [yields, setYieldsState] = useState<YieldsResponse | null>(() => {
+    try {
+      const stored = localStorage.getItem("tirs_yields");
+      return stored ? (JSON.parse(stored) as YieldsResponse) : null;
+    } catch { return null; }
+  });
+  const [yields2, setYields2State] = useState<Yields2Response | null>(() => {
+    try {
+      const stored = localStorage.getItem("tirs_yields2");
+      return stored ? (JSON.parse(stored) as Yields2Response) : null;
+    } catch { return null; }
+  });
   const [loadingYields, setLoadingYields] = useState(false);
   const [loadingYields2, setLoadingYields2] = useState(false);
   const [errorYields, setErrorYields] = useState<string | null>(null);
   const [errorYields2, setErrorYields2] = useState<string | null>(null);
+
+  function setYields(data: YieldsResponse) {
+    try { localStorage.setItem("tirs_yields", JSON.stringify(data)); } catch { /* ignore */ }
+    setYieldsState(data);
+  }
+
+  function setYields2(data: Yields2Response) {
+    try { localStorage.setItem("tirs_yields2", JSON.stringify(data)); } catch { /* ignore */ }
+    setYields2State(data);
+  }
 
   async function fetchYields() {
     setLoadingYields(true);

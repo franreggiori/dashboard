@@ -1280,18 +1280,23 @@ function TenenciasTab() {
   });
   const [showAll, setShowAll] = useState(false);
 
-  const lowYieldTickers: string[] = useMemo(() => {
+  const { lowYieldTickers, lowYieldMap } = useMemo(() => {
     try {
       const stored = localStorage.getItem("tirs_yields");
-      if (!stored) return [];
+      if (!stored) return { lowYieldTickers: [] as string[], lowYieldMap: {} as Record<string, number> };
       const data = JSON.parse(stored) as YieldsCached;
-      return (data.results ?? [])
-        .filter((r) => r.yAsk !== null && r.yAsk <= 0.05)
-        .map((r) => {
-          const t = r.ticker;
-          return t.endsWith("D") ? t.slice(0, -1) + "O" : t;
-        });
-    } catch { return []; }
+      const filtered = (data.results ?? []).filter((r) => r.yAsk !== null && r.yAsk <= 0.05);
+      const tickers = filtered.map((r) => {
+        const t = r.ticker;
+        return t.endsWith("D") ? t.slice(0, -1) + "O" : t;
+      });
+      const yAskMap: Record<string, number> = {};
+      filtered.forEach((r) => {
+        const t = r.ticker.endsWith("D") ? r.ticker.slice(0, -1) + "O" : r.ticker;
+        yAskMap[t] = r.yAsk!;
+      });
+      return { lowYieldTickers: tickers, lowYieldMap: yAskMap };
+    } catch { return { lowYieldTickers: [] as string[], lowYieldMap: {} as Record<string, number> }; }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [rows]);
 
@@ -1306,15 +1311,38 @@ function TenenciasTab() {
     );
   }, [rows, lowYieldTickers, showAll, hasFilter]);
 
-  const affectedClients = useMemo(() => {
+  const affectedRows = useMemo(() => {
     if (!hasFilter) return [];
-    const affected = rows.filter(
-      (r) =>
-        r.Tipo?.toLowerCase() === "bonos" &&
-        lowYieldTickers.includes(r.Instrumento?.toUpperCase())
+    return rows
+      .filter(
+        (r) =>
+          r.Tipo?.toLowerCase() === "bonos" &&
+          lowYieldTickers.includes(r.Instrumento?.toUpperCase())
+      )
+      .map((r) => ({
+        Cliente: r.Cliente,
+        Asesor: r.Asesor,
+        Instrumento: r.Instrumento,
+        "TIR Venta": lowYieldMap[r.Instrumento?.toUpperCase()] ?? null,
+      }));
+  }, [rows, lowYieldTickers, lowYieldMap, hasFilter]);
+
+  const uniqueAffectedClients = useMemo(
+    () => new Set(affectedRows.map((r) => r.Cliente)).size,
+    [affectedRows]
+  );
+
+  function downloadAffectedXlsx() {
+    const ws = XLSX.utils.json_to_sheet(
+      affectedRows.map((r) => ({
+        ...r,
+        "TIR Venta": r["TIR Venta"] != null ? (r["TIR Venta"] * 100).toFixed(2) + "%" : "",
+      }))
     );
-    return [...new Set(affected.map((r) => r.Cliente))];
-  }, [rows, lowYieldTickers, hasFilter]);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Afectados");
+    XLSX.writeFile(wb, "clientes_afectados.xlsx");
+  }
 
   function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -1367,11 +1395,45 @@ function TenenciasTab() {
               </span>
             ))}
           </div>
-          {affectedClients.length > 0 && (
-            <p className="text-xs text-amber-700">
-              {affectedClients.length} cliente{affectedClients.length > 1 ? "s" : ""} afectado{affectedClients.length > 1 ? "s" : ""}:{" "}
-              {affectedClients.join(", ")}
-            </p>
+          {affectedRows.length > 0 && (
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <p className="text-xs font-semibold text-amber-800">
+                  {uniqueAffectedClients} cliente{uniqueAffectedClients !== 1 ? "s" : ""} afectado{uniqueAffectedClients !== 1 ? "s" : ""} ({affectedRows.length} posicion{affectedRows.length !== 1 ? "es" : ""})
+                </p>
+                <button
+                  type="button"
+                  onClick={downloadAffectedXlsx}
+                  className="text-xs px-3 py-1 rounded border bg-white border-amber-400 text-amber-700 hover:bg-amber-50 transition-colors"
+                >
+                  Descargar Excel
+                </button>
+              </div>
+              <div className="overflow-x-auto rounded border border-amber-200">
+                <table className="w-full text-xs">
+                  <thead>
+                    <tr className="bg-amber-100 text-amber-800 text-left">
+                      <th className="px-2 py-1 font-semibold">Cliente</th>
+                      <th className="px-2 py-1 font-semibold">Asesor</th>
+                      <th className="px-2 py-1 font-semibold">Instrumento</th>
+                      <th className="px-2 py-1 font-semibold text-right">TIR Venta</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {affectedRows.map((r, i) => (
+                      <tr key={i} className="border-t border-amber-100 hover:bg-amber-50">
+                        <td className="px-2 py-1">{r.Cliente}</td>
+                        <td className="px-2 py-1">{r.Asesor}</td>
+                        <td className="px-2 py-1 font-mono">{r.Instrumento}</td>
+                        <td className="px-2 py-1 text-right text-red-600 font-medium">
+                          {r["TIR Venta"] != null ? (r["TIR Venta"] * 100).toFixed(2) + "%" : "—"}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
           )}
           <div className="flex items-center gap-2 pt-1">
             <button

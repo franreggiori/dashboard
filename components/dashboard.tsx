@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import * as XLSX from "xlsx";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { AÑOS, RETORNOS, type Año } from "@/lib/portfolio-data";
 import type { CargadoPor, PortfolioItem, PortfolioTemplate, Prospect } from "@prisma/client";
@@ -10,7 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 
-type TabKey = "cumples" | "prospects" | "carteras" | "crm" | "mercado" | "instrumentos" | "noticias" | "tirs";
+type TabKey = "cumples" | "prospects" | "carteras" | "crm" | "mercado" | "instrumentos" | "noticias" | "tirs" | "tenencias";
 
 type ProspectEstado = "PENDIENTE" | "CONTACTADO" | "EN_SEGUIMIENTO" | "NEGOCIACION" | "CERRADO" | "PERDIDO";
 
@@ -66,6 +67,7 @@ const NAV_ITEMS: [TabKey, string][] = [
   ["instrumentos", "🏦 Instrumentos"],
   ["noticias", "📰 Noticias"],
   ["tirs", "📊 TIRs"],
+  ["tenencias", "📁 Tenencias"],
 ];
 
 export default function Dashboard() {
@@ -105,6 +107,7 @@ export default function Dashboard() {
         {tab === "instrumentos" && <InstrumentosTab />}
         {tab === "noticias" && <NoticiasTab />}
         {tab === "tirs" && <TirsTab />}
+        {tab === "tenencias" && <TenenciasTab />}
       </main>
     </div>
   );
@@ -1246,6 +1249,178 @@ function TirsTab() {
           </div>
         )}
       </div>
+    </section>
+  );
+}
+
+// ─── TenenciasTab ─────────────────────────────────────────────────────────────
+
+type TenenciaRow = {
+  Cliente: string;
+  Asesor: string;
+  Instrumento: string;
+  Nombre: string;
+  Tipo: string;
+  Cuenta: string;
+  "Monto total": number | string;
+  Cantidad: number | string;
+  Moneda: string;
+};
+
+type YieldsResult = { ticker: string; yAsk: number | null };
+type YieldsCached = { results: YieldsResult[] };
+
+function TenenciasTab() {
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [rows, setRows] = useState<TenenciaRow[]>(() => {
+    try {
+      const stored = localStorage.getItem("tenencias_data");
+      return stored ? (JSON.parse(stored) as TenenciaRow[]) : [];
+    } catch { return []; }
+  });
+  const [showAll, setShowAll] = useState(false);
+
+  const lowYieldTickers: string[] = useMemo(() => {
+    try {
+      const stored = localStorage.getItem("tirs_yields");
+      if (!stored) return [];
+      const data = JSON.parse(stored) as YieldsCached;
+      return (data.results ?? [])
+        .filter((r) => r.yAsk !== null && r.yAsk <= 0.05)
+        .map((r) => {
+          const t = r.ticker;
+          return t.endsWith("D") ? t.slice(0, -1) + "O" : t;
+        });
+    } catch { return []; }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [rows]);
+
+  const hasFilter = lowYieldTickers.length > 0;
+
+  const filteredRows = useMemo(() => {
+    if (!hasFilter || showAll) return rows;
+    return rows.filter(
+      (r) =>
+        r.Tipo?.toLowerCase() === "bonos" &&
+        lowYieldTickers.includes(r.Instrumento?.toUpperCase())
+    );
+  }, [rows, lowYieldTickers, showAll, hasFilter]);
+
+  const affectedClients = useMemo(() => {
+    if (!hasFilter) return [];
+    const affected = rows.filter(
+      (r) =>
+        r.Tipo?.toLowerCase() === "bonos" &&
+        lowYieldTickers.includes(r.Instrumento?.toUpperCase())
+    );
+    return [...new Set(affected.map((r) => r.Cliente))];
+  }, [rows, lowYieldTickers, hasFilter]);
+
+  function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      try {
+        const data = ev.target?.result;
+        const wb = XLSX.read(data, { type: "array" });
+        const sheet = wb.Sheets["-tenencias"] ?? wb.Sheets[wb.SheetNames[0]];
+        const parsed = XLSX.utils.sheet_to_json<TenenciaRow>(sheet, { defval: "" });
+        setRows(parsed);
+        try { localStorage.setItem("tenencias_data", JSON.stringify(parsed)); } catch { /* ignore */ }
+      } catch (err) {
+        alert("Error al leer el archivo: " + (err instanceof Error ? err.message : String(err)));
+      }
+    };
+    reader.readAsArrayBuffer(file);
+    e.target.value = "";
+  }
+
+  const COLS: (keyof TenenciaRow)[] = [
+    "Cliente", "Asesor", "Instrumento", "Nombre", "Tipo", "Cuenta", "Monto total", "Cantidad", "Moneda",
+  ];
+
+  return (
+    <section className="p-6 space-y-6 max-w-full">
+      <div className="flex items-center justify-between">
+        <h2 className="text-xl font-bold text-slate-800">Tenencias</h2>
+        <div className="flex gap-2 items-center">
+          {rows.length > 0 && (
+            <span className="text-xs text-slate-400">{rows.length} registros cargados</span>
+          )}
+          <input ref={fileInputRef} type="file" accept=".xlsx" className="hidden" onChange={handleFile} />
+          <Button onClick={() => fileInputRef.current?.click()} className="text-sm">
+            Subir .xlsx
+          </Button>
+        </div>
+      </div>
+
+      {hasFilter && (
+        <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 space-y-2">
+          <p className="font-semibold text-amber-800 text-sm">
+            ⚠️ ONs con Yield Venta ≤ 5% ({lowYieldTickers.length} tickers)
+          </p>
+          <div className="flex flex-wrap gap-1">
+            {lowYieldTickers.map((t) => (
+              <span key={t} className="px-2 py-0.5 bg-amber-100 border border-amber-300 rounded text-xs font-mono text-amber-900">
+                {t}
+              </span>
+            ))}
+          </div>
+          {affectedClients.length > 0 && (
+            <p className="text-xs text-amber-700">
+              {affectedClients.length} cliente{affectedClients.length > 1 ? "s" : ""} afectado{affectedClients.length > 1 ? "s" : ""}:{" "}
+              {affectedClients.join(", ")}
+            </p>
+          )}
+          <div className="flex items-center gap-2 pt-1">
+            <button
+              type="button"
+              onClick={() => setShowAll((v) => !v)}
+              className={`text-xs px-3 py-1 rounded border transition-colors ${
+                showAll ? "bg-white border-slate-300 text-slate-600" : "bg-amber-600 border-amber-600 text-white"
+              }`}
+            >
+              {showAll ? "Mostrar solo afectados" : "Mostrar todos"}
+            </button>
+            <span className="text-xs text-amber-600">
+              {showAll ? `Mostrando todos (${rows.length})` : `Mostrando afectados (${filteredRows.length})`}
+            </span>
+          </div>
+        </div>
+      )}
+
+      {rows.length === 0 ? (
+        <div className="text-center py-16 border border-dashed rounded-lg text-slate-400 text-sm">
+          No hay datos cargados. Subí un archivo .xlsx con la hoja &quot;-tenencias&quot;.
+        </div>
+      ) : (
+        <div className="overflow-x-auto rounded-lg border border-slate-200">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="bg-slate-100 text-slate-600 text-left">
+                {COLS.map((c) => (
+                  <th key={c} className="px-3 py-2 font-semibold whitespace-nowrap">{c}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {filteredRows.map((row, i) => (
+                <tr
+                  key={i}
+                  className={`border-t transition-colors ${
+                    hasFilter && !showAll ? "bg-red-50 hover:bg-red-100" : "hover:bg-slate-50"
+                  }`}
+                >
+                  {COLS.map((c) => (
+                    <td key={c} className="px-3 py-2 whitespace-nowrap">{String(row[c] ?? "")}</td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
     </section>
   );
 }

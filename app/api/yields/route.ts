@@ -15,6 +15,10 @@ const RETRYABLE         = new Set([429, 500, 502, 503, 504]);
 
 // Caché TIR: "ticker:price" → tir  (persiste en instancia caliente de Vercel)
 const tirCache = new Map<string, number | null>();
+// Caché tipo de instrumento: ticker → type
+const typeCache = new Map<string, string>();
+
+const INSTRUMENT_TYPES = ["ON", "BONOS", "LETRAS", "ACCIONES", "CEDEARS", "ETF", "FCI"];
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -33,6 +37,22 @@ async function ppiGet(url: string, token: string): Promise<unknown> {
     await sleep(Math.min(BACKOFF_BASE_MS * 2 ** attempt, BACKOFF_CAP_MS));
   }
   throw new Error("unreachable");
+}
+
+async function detectInstrumentType(token: string, ticker: string, settlement: string): Promise<string> {
+  if (typeCache.has(ticker)) return typeCache.get(ticker)!;
+  for (const type of INSTRUMENT_TYPES) {
+    try {
+      const qs  = `ticker=${encodeURIComponent(ticker)}&type=${encodeURIComponent(type)}&settlement=${encodeURIComponent(settlement)}`;
+      const data = await ppiGet(`${PPI_BASE}/api/1.0/MarketData/Current?${qs}`, token);
+      const price = (data as Record<string, unknown>).price;
+      if (price !== null && price !== undefined) {
+        typeCache.set(ticker, type);
+        return type;
+      }
+    } catch { /* try next type */ }
+  }
+  throw new Error(`Instrument not found: ${ticker}`);
 }
 
 async function getTir(token: string, ticker: string, price: number): Promise<number | null> {
@@ -76,7 +96,7 @@ export async function POST(req: NextRequest) {
     for (const { ticker, settlement = "A-24HS" } of tickers) {
       if (results.length > 0) await sleep(SLEEP_TICKERS_MS);
       try {
-        const type = "ON";
+        const type = await detectInstrumentType(token, ticker, settlement);
         const qs   = `ticker=${encodeURIComponent(ticker)}&type=${encodeURIComponent(type)}&settlement=${encodeURIComponent(settlement)}`;
 
         const [current, book] = await Promise.all([

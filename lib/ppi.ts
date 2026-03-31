@@ -1,6 +1,5 @@
 const PPI_BASE = "https://clientapi.portfoliopersonal.com";
 
-const INSTRUMENT_TYPES = ["ON", "BONOS", "LETRAS", "ACCIONES", "CEDEARS", "ETF", "FCI"] as const;
 
 const MAX_RETRIES = 4;
 const BACKOFF_BASE_SEC = 0.35;

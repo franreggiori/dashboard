@@ -1267,7 +1267,7 @@ type TenenciaRow = {
   Moneda: string;
 };
 
-type YieldsResult = { ticker: string; yAsk: number | null };
+type YieldsResult = { ticker: string; yBid: number | null; yAsk: number | null };
 type YieldsCached = { results: YieldsResult[] };
 
 function TenenciasTab() {
@@ -1285,17 +1285,17 @@ function TenenciasTab() {
       const stored = localStorage.getItem("tirs_yields");
       if (!stored) return { lowYieldTickers: [] as string[], lowYieldMap: {} as Record<string, number> };
       const data = JSON.parse(stored) as YieldsCached;
-      const filtered = (data.results ?? []).filter((r) => r.yAsk !== null && r.yAsk <= 0.05);
+      const filtered = (data.results ?? []).filter((r) => r.yBid !== null && r.yBid > 0 && r.yBid <= 0.05);
       const tickers = filtered.map((r) => {
         const t = r.ticker;
         return t.endsWith("D") ? t.slice(0, -1) + "O" : t;
       });
-      const yAskMap: Record<string, number> = {};
+      const yBidMap: Record<string, number> = {};
       filtered.forEach((r) => {
         const t = r.ticker.endsWith("D") ? r.ticker.slice(0, -1) + "O" : r.ticker;
-        yAskMap[t] = r.yAsk!;
+        yBidMap[t] = r.yBid!;
       });
-      return { lowYieldTickers: tickers, lowYieldMap: yAskMap };
+      return { lowYieldTickers: tickers, lowYieldMap: yBidMap };
     } catch { return { lowYieldTickers: [] as string[], lowYieldMap: {} as Record<string, number> }; }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [rows]);
@@ -1323,7 +1323,7 @@ function TenenciasTab() {
         Cliente: r.Cliente,
         Asesor: r.Asesor,
         Instrumento: r.Instrumento,
-        "TIR Venta": lowYieldMap[r.Instrumento?.toUpperCase()] ?? null,
+        "TIR Compra": lowYieldMap[r.Instrumento?.toUpperCase()] ?? null,
       }));
   }, [rows, lowYieldTickers, lowYieldMap, hasFilter]);
 
@@ -1336,7 +1336,7 @@ function TenenciasTab() {
     const ws = XLSX.utils.json_to_sheet(
       affectedRows.map((r) => ({
         ...r,
-        "TIR Venta": r["TIR Venta"] != null ? (r["TIR Venta"] * 100).toFixed(2) + "%" : "",
+        "TIR Compra": r["TIR Compra"] != null ? (r["TIR Compra"] * 100).toFixed(2) + "%" : "",
       }))
     );
     const wb = XLSX.utils.book_new();
@@ -1386,7 +1386,7 @@ function TenenciasTab() {
       {hasFilter && (
         <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 space-y-2">
           <p className="font-semibold text-amber-800 text-sm">
-            ⚠️ ONs con Yield Venta ≤ 5% ({lowYieldTickers.length} tickers)
+            ⚠️ ONs con Yield Compra ≤ 5% ({lowYieldTickers.length} tickers)
           </p>
           <div className="flex flex-wrap gap-1">
             {lowYieldTickers.map((t) => (
@@ -1426,7 +1426,7 @@ function TenenciasTab() {
                         <td className="px-2 py-1">{r.Asesor}</td>
                         <td className="px-2 py-1 font-mono">{r.Instrumento}</td>
                         <td className="px-2 py-1 text-right text-red-600 font-medium">
-                          {r["TIR Venta"] != null ? (r["TIR Venta"] * 100).toFixed(2) + "%" : "—"}
+                          {r["TIR Compra"] != null ? (r["TIR Compra"] * 100).toFixed(2) + "%" : "—"}
                         </td>
                       </tr>
                     ))}

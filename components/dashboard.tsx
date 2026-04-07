@@ -203,11 +203,14 @@ function CumplesTab() {
             <th className="px-3 py-2 font-semibold">Cumple</th>
             <th className="px-3 py-2 font-semibold">Días faltantes</th>
             <th className="px-3 py-2 font-semibold">Teléfono</th>
-            <th className="px-3 py-2 font-semibold">Patrimonio USD</th>
+            <th className="px-3 py-2 font-semibold">Clasificación Cliente</th>
           </tr>
         </thead>
         <tbody>
-          {rows.map((row) => (
+          {rows.filter((row) => Number(row.patrimonioUSD) >= 20000).map((row) => {
+            const p = Number(row.patrimonioUSD);
+            const clasificacion = p >= 300000 ? "1" : p >= 100000 ? "2" : p >= 50000 ? "3" : "4";
+            return (
             <tr key={`${row.externalId}-${row.fechaLabel}`} className="border-t">
               <td>{row.nombre}</td>
               <td>{row.asesor || "-"}</td>
@@ -222,9 +225,10 @@ function CumplesTab() {
                   "-"
                 )}
               </td>
-              <td>{row.patrimonioUSD ? `USD ${Number(row.patrimonioUSD).toLocaleString("es-AR")}` : "-"}</td>
+              <td className="text-center font-semibold">{clasificacion}</td>
             </tr>
-          ))}
+            );
+          })}
         </tbody>
       </table>
     </section>

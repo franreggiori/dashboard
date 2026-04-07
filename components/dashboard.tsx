@@ -81,7 +81,7 @@ export default function Dashboard() {
 
   function handleLogin(e: React.FormEvent) {
     e.preventDefault();
-    if (loginPassword === "vision2026") {
+    if (loginPassword === "Copado135$") {
       sessionStorage.setItem("wm_auth", "true");
       setIsAuthenticated(true);
     } else {

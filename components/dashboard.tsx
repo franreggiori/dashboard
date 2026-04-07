@@ -712,7 +712,7 @@ function CrmTab() {
           <tr className="bg-slate-100 text-slate-600 text-left">
             <th className="px-3 py-2 font-semibold">Nombre</th>
             <th className="px-3 py-2 font-semibold">Asesor</th>
-            <th className="px-3 py-2 font-semibold">Patrimonio USD</th>
+            <th className="px-3 py-2 font-semibold">Clasificación Cliente</th>
             <th className="px-3 py-2 font-semibold">Último informe</th>
             <th className="px-3 py-2 font-semibold">Días desde último envío</th>
             <th className="px-3 py-2 font-semibold">Estado</th>
@@ -720,11 +720,14 @@ function CrmTab() {
           </tr>
         </thead>
         <tbody>
-          {rows.map((row) => (
+          {rows.filter((row) => Number(row.patrimonioUSD) >= 20000).map((row) => {
+            const p = Number(row.patrimonioUSD);
+            const clasificacion = p >= 300000 ? "1" : p >= 100000 ? "2" : p >= 50000 ? "3" : "4";
+            return (
             <tr key={row.externalId} className={`border-t ${row.estado === "VENCIDO" ? "bg-red-50" : ""}`}>
               <td>{row.nombre}</td>
               <td>{row.asesor || "-"}</td>
-              <td>USD {Number(row.patrimonioUSD).toLocaleString("es-AR")}</td>
+              <td className="text-center font-semibold">{clasificacion}</td>
               <td>{row.lastReportSentAt ? new Date(row.lastReportSentAt).toLocaleDateString("es-AR") : "-"}</td>
               <td>{row.daysSinceLastReport}</td>
               <td>
@@ -752,7 +755,8 @@ function CrmTab() {
                 </Button>
               </td>
             </tr>
-          ))}
+            );
+          })}
         </tbody>
       </table>
 

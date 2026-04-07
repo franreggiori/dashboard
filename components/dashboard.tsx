@@ -72,6 +72,48 @@ const NAV_ITEMS: [TabKey, string][] = [
 
 export default function Dashboard() {
   const [tab, setTab] = useState<TabKey>("cumples");
+  const [isAuthenticated, setIsAuthenticated] = useState(() => {
+    if (typeof window === "undefined") return false;
+    return sessionStorage.getItem("wm_auth") === "true";
+  });
+  const [loginPassword, setLoginPassword] = useState("");
+  const [loginError, setLoginError] = useState("");
+
+  function handleLogin(e: React.FormEvent) {
+    e.preventDefault();
+    if (loginPassword === "vision2026") {
+      sessionStorage.setItem("wm_auth", "true");
+      setIsAuthenticated(true);
+    } else {
+      setLoginError("Contraseña incorrecta");
+    }
+  }
+
+  if (!isAuthenticated) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-slate-900">
+        <div className="bg-white rounded-2xl shadow-xl p-10 w-full max-w-sm space-y-6">
+          <div className="text-center space-y-2">
+            <div className="text-5xl mb-2">💼</div>
+            <h1 className="text-xl font-bold text-slate-800">Wealth Management Dashboard</h1>
+          </div>
+          <form onSubmit={handleLogin} className="space-y-4">
+            <div>
+              <Input
+                type="password"
+                placeholder="Contraseña"
+                value={loginPassword}
+                onChange={(e) => { setLoginPassword(e.target.value); setLoginError(""); }}
+                className="w-full"
+              />
+              {loginError && <p className="mt-1 text-sm text-red-500">{loginError}</p>}
+            </div>
+            <Button type="submit" className="w-full">Ingresar</Button>
+          </form>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex bg-slate-50">
@@ -1280,25 +1322,46 @@ function TenenciasTab() {
   });
   const [showAll, setShowAll] = useState(false);
 
-  const { lowYieldTickers, lowYieldMap } = useMemo(() => {
+  const [lowYieldTickers, setLowYieldTickers] = useState<string[]>(() => {
     try {
       const stored = localStorage.getItem("tirs_yields");
-      if (!stored) return { lowYieldTickers: [] as string[], lowYieldMap: {} as Record<string, number> };
+      if (!stored) return [];
       const data = JSON.parse(stored) as YieldsCached;
       const filtered = (data.results ?? []).filter((r) => r.yBid !== null && r.yBid > 0 && r.yBid <= 0.05);
-      const tickers = filtered.map((r) => {
-        const t = r.ticker;
-        return t.endsWith("D") ? t.slice(0, -1) + "O" : t;
-      });
+      return filtered.map((r) => (r.ticker.endsWith("D") ? r.ticker.slice(0, -1) + "O" : r.ticker));
+    } catch { return []; }
+  });
+  const [lowYieldMap, setLowYieldMap] = useState<Record<string, number>>(() => {
+    try {
+      const stored = localStorage.getItem("tirs_yields");
+      if (!stored) return {};
+      const data = JSON.parse(stored) as YieldsCached;
+      const filtered = (data.results ?? []).filter((r) => r.yBid !== null && r.yBid > 0 && r.yBid <= 0.05);
       const yBidMap: Record<string, number> = {};
       filtered.forEach((r) => {
         const t = r.ticker.endsWith("D") ? r.ticker.slice(0, -1) + "O" : r.ticker;
         yBidMap[t] = r.yBid!;
       });
-      return { lowYieldTickers: tickers, lowYieldMap: yBidMap };
-    } catch { return { lowYieldTickers: [] as string[], lowYieldMap: {} as Record<string, number> }; }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [rows]);
+      return yBidMap;
+    } catch { return {}; }
+  });
+
+  function applyYieldFilter() {
+    try {
+      const stored = localStorage.getItem("tirs_yields");
+      if (!stored) { setLowYieldTickers([]); setLowYieldMap({}); return; }
+      const data = JSON.parse(stored) as YieldsCached;
+      const filtered = (data.results ?? []).filter((r) => r.yBid !== null && r.yBid > 0 && r.yBid <= 0.05);
+      const tickers = filtered.map((r) => (r.ticker.endsWith("D") ? r.ticker.slice(0, -1) + "O" : r.ticker));
+      const yBidMap: Record<string, number> = {};
+      filtered.forEach((r) => {
+        const t = r.ticker.endsWith("D") ? r.ticker.slice(0, -1) + "O" : r.ticker;
+        yBidMap[t] = r.yBid!;
+      });
+      setLowYieldTickers(tickers);
+      setLowYieldMap(yBidMap);
+    } catch { setLowYieldTickers([]); setLowYieldMap({}); }
+  }
 
   const hasFilter = lowYieldTickers.length > 0;
 
@@ -1376,6 +1439,9 @@ function TenenciasTab() {
           {rows.length > 0 && (
             <span className="text-xs text-slate-400">{rows.length} registros cargados</span>
           )}
+          <Button onClick={applyYieldFilter} className="text-sm bg-amber-600 hover:bg-amber-700 text-white">
+            Actualizar filtro TIRs
+          </Button>
           <input ref={fileInputRef} type="file" accept=".xlsx" className="hidden" onChange={handleFile} />
           <Button onClick={() => fileInputRef.current?.click()} className="text-sm">
             Subir .xlsx

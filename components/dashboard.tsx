@@ -203,14 +203,16 @@ function CumplesTab() {
             <th className="px-3 py-2 font-semibold">Cumple</th>
             <th className="px-3 py-2 font-semibold">Días faltantes</th>
             <th className="px-3 py-2 font-semibold">Teléfono</th>
-            <th className="px-3 py-2 font-semibold">Patrimonio USD</th>
             <th className="px-3 py-2 font-semibold">Clasificación</th>
           </tr>
         </thead>
         <tbody>
           {rows.map((row) => {
-            const p = row.patrimonioUSD ? Number(row.patrimonioUSD) : null;
-            const clasificacion = p == null ? "" : p >= 300000 ? "1" : p >= 100000 ? "2" : p >= 50000 ? "3" : p >= 20000 ? "4" : "";
+            const raw = row.patrimonioUSD;
+            const p = raw == null ? null : typeof raw === "string"
+              ? Number(String(raw).replace(/[^0-9.]/g, ""))
+              : Number(raw);
+            const clasificacion = !p || isNaN(p) ? "" : p >= 300000 ? "1" : p >= 100000 ? "2" : p >= 50000 ? "3" : p >= 20000 ? "4" : "";
             return (
             <tr key={`${row.externalId}-${row.fechaLabel}`} className="border-t">
               <td>{row.nombre}</td>
@@ -226,7 +228,6 @@ function CumplesTab() {
                   "-"
                 )}
               </td>
-              <td>{row.patrimonioUSD ? `USD ${Number(row.patrimonioUSD).toLocaleString("es-AR")}` : "-"}</td>
               <td className="text-center font-semibold">{clasificacion}</td>
             </tr>
             );

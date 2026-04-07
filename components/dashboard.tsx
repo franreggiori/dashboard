@@ -72,48 +72,6 @@ const NAV_ITEMS: [TabKey, string][] = [
 
 export default function Dashboard() {
   const [tab, setTab] = useState<TabKey>("cumples");
-  const [isAuthenticated, setIsAuthenticated] = useState(() => {
-    if (typeof window === "undefined") return false;
-    return sessionStorage.getItem("wm_auth") === "true";
-  });
-  const [loginPassword, setLoginPassword] = useState("");
-  const [loginError, setLoginError] = useState("");
-
-  function handleLogin(e: React.FormEvent) {
-    e.preventDefault();
-    if (loginPassword === "Copado135$") {
-      sessionStorage.setItem("wm_auth", "true");
-      setIsAuthenticated(true);
-    } else {
-      setLoginError("Contraseña incorrecta");
-    }
-  }
-
-  if (!isAuthenticated) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-900">
-        <div className="bg-white rounded-2xl shadow-xl p-10 w-full max-w-sm space-y-6">
-          <div className="text-center space-y-2">
-            <div className="text-5xl mb-2">💼</div>
-            <h1 className="text-xl font-bold text-slate-800">Wealth Management Dashboard</h1>
-          </div>
-          <form onSubmit={handleLogin} className="space-y-4">
-            <div>
-              <Input
-                type="password"
-                placeholder="Contraseña"
-                value={loginPassword}
-                onChange={(e) => { setLoginPassword(e.target.value); setLoginError(""); }}
-                className="w-full"
-              />
-              {loginError && <p className="mt-1 text-sm text-red-500">{loginError}</p>}
-            </div>
-            <Button type="submit" className="w-full">Ingresar</Button>
-          </form>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen flex bg-slate-50">

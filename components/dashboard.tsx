@@ -207,9 +207,9 @@ function CumplesTab() {
           </tr>
         </thead>
         <tbody>
-          {rows.filter((row) => Number(row.patrimonioUSD) >= 20000).map((row) => {
-            const p = Number(row.patrimonioUSD);
-            const clasificacion = p >= 300000 ? "1" : p >= 100000 ? "2" : p >= 50000 ? "3" : "4";
+          {rows.filter((row) => row.patrimonioUSD == null || Number(row.patrimonioUSD) >= 20000).map((row) => {
+            const p = row.patrimonioUSD != null ? Number(row.patrimonioUSD) : null;
+            const clasificacion = p == null ? "-" : p >= 300000 ? "1" : p >= 100000 ? "2" : p >= 50000 ? "3" : "4";
             return (
             <tr key={`${row.externalId}-${row.fechaLabel}`} className="border-t">
               <td>{row.nombre}</td>

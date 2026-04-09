@@ -11,7 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 
-type TabKey = "cumples" | "prospects" | "carteras" | "crm" | "mercado" | "instrumentos" | "noticias" | "tirs" | "tenencias";
+type TabKey = "cumples" | "prospects" | "carteras" | "crm" | "mercado" | "instrumentos" | "noticias" | "tirs" | "tenencias" | "fci";
 
 type ProspectEstado = "PENDIENTE" | "CONTACTADO" | "EN_SEGUIMIENTO" | "NEGOCIACION" | "CERRADO" | "PERDIDO";
 
@@ -68,6 +68,7 @@ const NAV_ITEMS: [TabKey, string][] = [
   ["noticias", "📰 Noticias"],
   ["tirs", "📊 TIRs"],
   ["tenencias", "📁 Tenencias"],
+  ["fci", "📈 FCI"],
 ];
 
 export default function Dashboard() {
@@ -108,6 +109,7 @@ export default function Dashboard() {
         {tab === "noticias" && <NoticiasTab />}
         {tab === "tirs" && <TirsTab />}
         {tab === "tenencias" && <TenenciasTab />}
+        {tab === "fci" && <FCITab />}
       </main>
     </div>
   );
@@ -1518,6 +1520,139 @@ function TenenciasTab() {
           </table>
         </div>
       )}
+    </section>
+  );
+}
+
+// ─── FCI Tab ──────────────────────────────────────────────────────────────────
+
+type FCIRow = { fecha: string; precio: number };
+type FCIFondo = { ticker: string; name: string; rows: FCIRow[] };
+type FCIResponse = { dateFrom: string; dateTo: string; fondos: FCIFondo[]; error?: string };
+
+const FCI_LS_KEY = "fci_data";
+
+function withVariacion(rows: FCIRow[]): (FCIRow & { variacion: number | null })[] {
+  return rows.map((r, i) => ({
+    ...r,
+    variacion: i === 0 ? null : ((r.precio - rows[i - 1].precio) / rows[i - 1].precio) * 100,
+  }));
+}
+
+function FCITable({ fondo }: { fondo: FCIFondo }) {
+  const rowsWithVar = withVariacion(fondo.rows).reverse(); // más reciente primero
+  return (
+    <div className="space-y-2">
+      <h3 className="font-semibold text-slate-800">
+        {fondo.name} <span className="text-xs font-mono text-slate-500">({fondo.ticker})</span>
+      </h3>
+      {rowsWithVar.length === 0 ? (
+        <p className="text-sm text-slate-400">Sin datos.</p>
+      ) : (
+        <div className="overflow-x-auto rounded-lg border border-slate-200">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="bg-slate-100 text-slate-600 text-left">
+                <th className="px-3 py-2 font-semibold">Fecha</th>
+                <th className="px-3 py-2 font-semibold text-right">Valor Cuotaparte</th>
+                <th className="px-3 py-2 font-semibold text-right">Variación %</th>
+              </tr>
+            </thead>
+            <tbody>
+              {rowsWithVar.map((r) => (
+                <tr key={r.fecha} className="border-t hover:bg-slate-50">
+                  <td className="px-3 py-2 font-mono">{r.fecha}</td>
+                  <td className="px-3 py-2 text-right font-mono">
+                    {r.precio.toLocaleString("es-AR", { minimumFractionDigits: 4, maximumFractionDigits: 4 })}
+                  </td>
+                  <td
+                    className={`px-3 py-2 text-right font-mono font-medium ${
+                      r.variacion == null
+                        ? "text-slate-400"
+                        : r.variacion >= 0
+                        ? "text-green-600"
+                        : "text-red-600"
+                    }`}
+                  >
+                    {r.variacion == null
+                      ? "—"
+                      : (r.variacion >= 0 ? "+" : "") + r.variacion.toFixed(3) + "%"}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function FCITab() {
+  const [data, setData] = useState<FCIResponse | null>(() => {
+    if (typeof window === "undefined") return null;
+    try {
+      const saved = localStorage.getItem(FCI_LS_KEY);
+      return saved ? (JSON.parse(saved) as FCIResponse) : null;
+    } catch {
+      return null;
+    }
+  });
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function actualizar() {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/fci");
+      const json = (await res.json()) as FCIResponse;
+      if (!res.ok || json.error) throw new Error(json.error ?? `Error ${res.status}`);
+      setData(json);
+      localStorage.setItem(FCI_LS_KEY, JSON.stringify(json));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <section className="space-y-6">
+      <div className="flex items-center justify-between">
+        <h2 className="text-xl font-semibold">Fondos Comunes de Inversión</h2>
+        <div className="flex items-center gap-3">
+          {data && (
+            <span className="text-xs text-slate-400">
+              {data.dateFrom} → {data.dateTo}
+            </span>
+          )}
+          <button
+            type="button"
+            onClick={actualizar}
+            disabled={loading}
+            className="px-4 py-1.5 rounded-lg bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 disabled:opacity-50 transition-colors"
+          >
+            {loading ? "Cargando…" : "Actualizar"}
+          </button>
+        </div>
+      </div>
+
+      {error && (
+        <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          {error}
+        </div>
+      )}
+
+      {!data && !loading && !error && (
+        <div className="text-center py-16 border border-dashed rounded-lg text-slate-400 text-sm">
+          Presioná &quot;Actualizar&quot; para cargar el histórico del último mes.
+        </div>
+      )}
+
+      {data?.fondos.map((fondo) => (
+        <FCITable key={fondo.ticker} fondo={fondo} />
+      ))}
     </section>
   );
 }

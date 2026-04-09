@@ -1530,9 +1530,22 @@ type FCIRow = { fecha: string; precio: number };
 type FCIFondo = { ticker: string; name: string; rows: FCIRow[] };
 type FCIResponse = { dateFrom: string; dateTo: string; fondos: FCIFondo[]; error?: string };
 
+type FCIMetrics = {
+  precioHoy: number | null;
+  precio7d: number | null;
+  precio30d: number | null;
+  tna7d: number | null;
+  tna30d: number | null;
+};
+
 const FCI_LS_KEY = "fci_data";
 
-/** Último precio disponible en o antes de la fecha objetivo (YYYY-MM-DD) */
+// Etiquetas para el texto copiable
+const FCI_LABELS: Record<string, string> = {
+  RFDL10000: "Fondo en Dólares: Gainvest Renta Fija Dólares",
+  "GAL.AHPL.A": "Fondo en Pesos: Galileo Ahorro Plus",
+};
+
 function precioEn(rows: FCIRow[], targetDate: string): number | null {
   const candidates = rows.filter((r) => r.fecha <= targetDate);
   return candidates.length > 0 ? candidates[candidates.length - 1].precio : null;
@@ -1544,83 +1557,30 @@ function addDays(dateStr: string, days: number): string {
   return d.toISOString().slice(0, 10);
 }
 
+function computeMetrics(fondo: FCIFondo, dateTo: string): FCIMetrics {
+  const rows = fondo.rows;
+  const precioHoy  = precioEn(rows, dateTo);
+  const precio7d   = precioEn(rows, addDays(dateTo, -7));
+  const precio30d  = precioEn(rows, addDays(dateTo, -30));
+  const rend7d  = precioHoy != null && precio7d  != null ? (precioHoy - precio7d)  / precio7d  : null;
+  const rend30d = precioHoy != null && precio30d != null ? (precioHoy - precio30d) / precio30d : null;
+  return {
+    precioHoy,
+    precio7d,
+    precio30d,
+    tna7d:  rend7d  != null ? rend7d  * (365 / 7)  * 100 : null,
+    tna30d: rend30d != null ? rend30d * (365 / 30) * 100 : null,
+  };
+}
+
 function fmtPrecio(v: number | null, decimals = 4): string {
   if (v == null) return "—";
   return v.toLocaleString("es-AR", { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
 }
 
-function fmtPct(v: number | null, decimals = 2): string {
+function fmtTna(v: number | null): string {
   if (v == null) return "—";
-  return (v >= 0 ? "+" : "") + v.toFixed(decimals) + "%";
-}
-
-function FCISummaryCard({ fondo, dateTo }: { fondo: FCIFondo; dateTo: string }) {
-  const rows = fondo.rows; // ordenados asc por fecha
-
-  const precioHoy   = precioEn(rows, dateTo);
-  const precio7d    = precioEn(rows, addDays(dateTo, -7));
-  const precio30d   = precioEn(rows, addDays(dateTo, -30));
-
-  const rend7d  = precioHoy != null && precio7d  != null ? (precioHoy - precio7d)  / precio7d  : null;
-  const rend30d = precioHoy != null && precio30d != null ? (precioHoy - precio30d) / precio30d : null;
-
-  const tna7d  = rend7d  != null ? rend7d  * (365 / 7)  * 100 : null;
-  const tna30d = rend30d != null ? rend30d * (365 / 30) * 100 : null;
-
-  const rendPct7d  = rend7d  != null ? rend7d  * 100 : null;
-  const rendPct30d = rend30d != null ? rend30d * 100 : null;
-
-  return (
-    <div className="rounded-xl border border-slate-200 bg-white p-5 space-y-4 shadow-sm">
-      <h3 className="font-semibold text-slate-800 text-base">
-        {fondo.name}{" "}
-        <span className="text-xs font-mono text-slate-400">({fondo.ticker})</span>
-      </h3>
-
-      {/* Valores cuotaparte */}
-      <div className="grid grid-cols-3 gap-3">
-        {[
-          { label: "Valor CP hoy", value: precioHoy },
-          { label: "Valor CP hace 7D", value: precio7d },
-          { label: "Valor CP hace 30D", value: precio30d },
-        ].map(({ label, value }) => (
-          <div key={label} className="rounded-lg bg-slate-50 border border-slate-100 px-4 py-3">
-            <p className="text-xs text-slate-500 mb-1">{label}</p>
-            <p className="font-mono font-semibold text-slate-800">
-              ${fmtPrecio(value)}
-            </p>
-          </div>
-        ))}
-      </div>
-
-      {/* TNA */}
-      <div className="space-y-2">
-        {[
-          { label: "TNA 7D", rendPct: rendPct7d, tna: tna7d },
-          { label: "TNA 30D", rendPct: rendPct30d, tna: tna30d },
-        ].map(({ label, rendPct, tna }) => (
-          <div key={label} className="flex items-center gap-2 text-sm">
-            <span className="w-16 text-slate-500 font-medium">{label}:</span>
-            <span
-              className={`font-mono font-semibold ${
-                rendPct == null ? "text-slate-400" : rendPct >= 0 ? "text-green-600" : "text-red-600"
-              }`}
-            >
-              {fmtPct(rendPct, 3)}
-            </span>
-            <span className="text-slate-400 text-xs">────▶</span>
-            <span
-              className={`font-mono font-semibold ${
-                tna == null ? "text-slate-400" : tna >= 0 ? "text-green-700" : "text-red-700"
-              }`}
-            >
-              {fmtPct(tna, 2)} anual
-            </span>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
+  return v.toFixed(2).replace(".", ",") + "%";
 }
 
 function FCITab() {
@@ -1635,6 +1595,7 @@ function FCITab() {
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
 
   async function actualizar() {
     setLoading(true);
@@ -1652,15 +1613,30 @@ function FCITab() {
     }
   }
 
+  function copiarTexto() {
+    if (!data) return;
+    const lines = data.fondos.map((fondo) => {
+      const m = computeMetrics(fondo, data.dateTo);
+      const label = FCI_LABELS[fondo.ticker] ?? fondo.name;
+      return `${label}\nTNA 7D: ${fmtTna(m.tna7d)}\nTNA 30D: ${fmtTna(m.tna30d)}`;
+    });
+    navigator.clipboard.writeText(lines.join("\n\n"));
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  }
+
+  const allMetrics = data
+    ? data.fondos.map((f) => ({ fondo: f, metrics: computeMetrics(f, data.dateTo) }))
+    : null;
+
   return (
     <section className="space-y-6">
+      {/* Header */}
       <div className="flex items-center justify-between">
         <h2 className="text-xl font-semibold">Fondos Comunes de Inversión</h2>
         <div className="flex items-center gap-3">
           {data && (
-            <span className="text-xs text-slate-400">
-              Actualizado al {data.dateTo}
-            </span>
+            <span className="text-xs text-slate-400">Actualizado al {data.dateTo}</span>
           )}
           <button
             type="button"
@@ -1685,9 +1661,84 @@ function FCITab() {
         </div>
       )}
 
-      {data?.fondos.map((fondo) => (
-        <FCISummaryCard key={fondo.ticker} fondo={fondo} dateTo={data.dateTo} />
-      ))}
+      {allMetrics && (
+        <>
+          {/* Valores cuotaparte (uso interno) */}
+          <div className="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+            <div className="px-5 py-3 bg-slate-50 border-b border-slate-200">
+              <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                Valores cuotaparte (uso interno)
+              </p>
+            </div>
+            <div className="divide-y divide-slate-100">
+              {allMetrics.map(({ fondo, metrics: m }) => (
+                <div key={fondo.ticker} className="px-5 py-4">
+                  <p className="text-sm font-medium text-slate-700 mb-3">
+                    {fondo.name}{" "}
+                    <span className="font-mono text-xs text-slate-400">({fondo.ticker})</span>
+                  </p>
+                  <div className="grid grid-cols-3 gap-3">
+                    {[
+                      { label: "Valor CP hoy", value: m.precioHoy },
+                      { label: "Valor CP hace 7D", value: m.precio7d },
+                      { label: "Valor CP hace 30D", value: m.precio30d },
+                    ].map(({ label, value }) => (
+                      <div key={label} className="rounded-lg bg-slate-50 border border-slate-100 px-4 py-3">
+                        <p className="text-xs text-slate-500 mb-1">{label}</p>
+                        <p className="font-mono font-semibold text-slate-800">${fmtPrecio(value)}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* TNAs */}
+          <div className="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+            <div className="px-5 py-3 bg-slate-50 border-b border-slate-200">
+              <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                Rendimientos anualizados (TNA)
+              </p>
+            </div>
+            <div className="divide-y divide-slate-100">
+              {allMetrics.map(({ fondo, metrics: m }) => (
+                <div key={fondo.ticker} className="px-5 py-4 space-y-2">
+                  <p className="text-sm font-medium text-slate-700">
+                    {FCI_LABELS[fondo.ticker] ?? fondo.name}
+                  </p>
+                  {[
+                    { label: "TNA 7D", tna: m.tna7d },
+                    { label: "TNA 30D", tna: m.tna30d },
+                  ].map(({ label, tna }) => (
+                    <div key={label} className="flex items-center gap-2 text-sm">
+                      <span className="w-20 text-slate-500 font-medium">{label}:</span>
+                      <span
+                        className={`font-mono font-semibold text-base ${
+                          tna == null ? "text-slate-400" : tna >= 0 ? "text-green-600" : "text-red-600"
+                        }`}
+                      >
+                        {fmtTna(tna)}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Botón copiar */}
+          <div className="flex justify-end">
+            <button
+              type="button"
+              onClick={copiarTexto}
+              className="px-4 py-2 rounded-lg border border-slate-300 bg-white text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors"
+            >
+              {copied ? "¡Copiado!" : "Copiar texto para cliente"}
+            </button>
+          </div>
+        </>
+      )}
     </section>
   );
 }

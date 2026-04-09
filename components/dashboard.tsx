@@ -1532,58 +1532,93 @@ type FCIResponse = { dateFrom: string; dateTo: string; fondos: FCIFondo[]; error
 
 const FCI_LS_KEY = "fci_data";
 
-function withVariacion(rows: FCIRow[]): (FCIRow & { variacion: number | null })[] {
-  return rows.map((r, i) => ({
-    ...r,
-    variacion: i === 0 ? null : ((r.precio - rows[i - 1].precio) / rows[i - 1].precio) * 100,
-  }));
+/** Último precio disponible en o antes de la fecha objetivo (YYYY-MM-DD) */
+function precioEn(rows: FCIRow[], targetDate: string): number | null {
+  const candidates = rows.filter((r) => r.fecha <= targetDate);
+  return candidates.length > 0 ? candidates[candidates.length - 1].precio : null;
 }
 
-function FCITable({ fondo }: { fondo: FCIFondo }) {
-  const rowsWithVar = withVariacion(fondo.rows).reverse(); // más reciente primero
+function addDays(dateStr: string, days: number): string {
+  const d = new Date(dateStr + "T00:00:00Z");
+  d.setUTCDate(d.getUTCDate() + days);
+  return d.toISOString().slice(0, 10);
+}
+
+function fmtPrecio(v: number | null, decimals = 4): string {
+  if (v == null) return "—";
+  return v.toLocaleString("es-AR", { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
+}
+
+function fmtPct(v: number | null, decimals = 2): string {
+  if (v == null) return "—";
+  return (v >= 0 ? "+" : "") + v.toFixed(decimals) + "%";
+}
+
+function FCISummaryCard({ fondo, dateTo }: { fondo: FCIFondo; dateTo: string }) {
+  const rows = fondo.rows; // ordenados asc por fecha
+
+  const precioHoy   = precioEn(rows, dateTo);
+  const precio7d    = precioEn(rows, addDays(dateTo, -7));
+  const precio30d   = precioEn(rows, addDays(dateTo, -30));
+
+  const rend7d  = precioHoy != null && precio7d  != null ? (precioHoy - precio7d)  / precio7d  : null;
+  const rend30d = precioHoy != null && precio30d != null ? (precioHoy - precio30d) / precio30d : null;
+
+  const tna7d  = rend7d  != null ? rend7d  * (365 / 7)  * 100 : null;
+  const tna30d = rend30d != null ? rend30d * (365 / 30) * 100 : null;
+
+  const rendPct7d  = rend7d  != null ? rend7d  * 100 : null;
+  const rendPct30d = rend30d != null ? rend30d * 100 : null;
+
   return (
-    <div className="space-y-2">
-      <h3 className="font-semibold text-slate-800">
-        {fondo.name} <span className="text-xs font-mono text-slate-500">({fondo.ticker})</span>
+    <div className="rounded-xl border border-slate-200 bg-white p-5 space-y-4 shadow-sm">
+      <h3 className="font-semibold text-slate-800 text-base">
+        {fondo.name}{" "}
+        <span className="text-xs font-mono text-slate-400">({fondo.ticker})</span>
       </h3>
-      {rowsWithVar.length === 0 ? (
-        <p className="text-sm text-slate-400">Sin datos.</p>
-      ) : (
-        <div className="overflow-x-auto rounded-lg border border-slate-200">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="bg-slate-100 text-slate-600 text-left">
-                <th className="px-3 py-2 font-semibold">Fecha</th>
-                <th className="px-3 py-2 font-semibold text-right">Valor Cuotaparte</th>
-                <th className="px-3 py-2 font-semibold text-right">Variación %</th>
-              </tr>
-            </thead>
-            <tbody>
-              {rowsWithVar.map((r) => (
-                <tr key={r.fecha} className="border-t hover:bg-slate-50">
-                  <td className="px-3 py-2 font-mono">{r.fecha}</td>
-                  <td className="px-3 py-2 text-right font-mono">
-                    {r.precio.toLocaleString("es-AR", { minimumFractionDigits: 4, maximumFractionDigits: 4 })}
-                  </td>
-                  <td
-                    className={`px-3 py-2 text-right font-mono font-medium ${
-                      r.variacion == null
-                        ? "text-slate-400"
-                        : r.variacion >= 0
-                        ? "text-green-600"
-                        : "text-red-600"
-                    }`}
-                  >
-                    {r.variacion == null
-                      ? "—"
-                      : (r.variacion >= 0 ? "+" : "") + r.variacion.toFixed(3) + "%"}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
+
+      {/* Valores cuotaparte */}
+      <div className="grid grid-cols-3 gap-3">
+        {[
+          { label: "Valor CP hoy", value: precioHoy },
+          { label: "Valor CP hace 7D", value: precio7d },
+          { label: "Valor CP hace 30D", value: precio30d },
+        ].map(({ label, value }) => (
+          <div key={label} className="rounded-lg bg-slate-50 border border-slate-100 px-4 py-3">
+            <p className="text-xs text-slate-500 mb-1">{label}</p>
+            <p className="font-mono font-semibold text-slate-800">
+              ${fmtPrecio(value)}
+            </p>
+          </div>
+        ))}
+      </div>
+
+      {/* TNA */}
+      <div className="space-y-2">
+        {[
+          { label: "TNA 7D", rendPct: rendPct7d, tna: tna7d },
+          { label: "TNA 30D", rendPct: rendPct30d, tna: tna30d },
+        ].map(({ label, rendPct, tna }) => (
+          <div key={label} className="flex items-center gap-2 text-sm">
+            <span className="w-16 text-slate-500 font-medium">{label}:</span>
+            <span
+              className={`font-mono font-semibold ${
+                rendPct == null ? "text-slate-400" : rendPct >= 0 ? "text-green-600" : "text-red-600"
+              }`}
+            >
+              {fmtPct(rendPct, 3)}
+            </span>
+            <span className="text-slate-400 text-xs">────▶</span>
+            <span
+              className={`font-mono font-semibold ${
+                tna == null ? "text-slate-400" : tna >= 0 ? "text-green-700" : "text-red-700"
+              }`}
+            >
+              {fmtPct(tna, 2)} anual
+            </span>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
@@ -1624,7 +1659,7 @@ function FCITab() {
         <div className="flex items-center gap-3">
           {data && (
             <span className="text-xs text-slate-400">
-              {data.dateFrom} → {data.dateTo}
+              Actualizado al {data.dateTo}
             </span>
           )}
           <button
@@ -1646,12 +1681,12 @@ function FCITab() {
 
       {!data && !loading && !error && (
         <div className="text-center py-16 border border-dashed rounded-lg text-slate-400 text-sm">
-          Presioná &quot;Actualizar&quot; para cargar el histórico del último mes.
+          Presioná &quot;Actualizar&quot; para cargar los datos.
         </div>
       )}
 
       {data?.fondos.map((fondo) => (
-        <FCITable key={fondo.ticker} fondo={fondo} />
+        <FCISummaryCard key={fondo.ticker} fondo={fondo} dateTo={data.dateTo} />
       ))}
     </section>
   );

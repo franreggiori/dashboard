@@ -1,4 +1,4 @@
-# Dashboard interno de asesoramiento financiero
+#  Dashboard interno de asesoramiento financiero
 
 SaaS interno en **Next.js 14 (App Router) + TypeScript + Tailwind + Prisma**.
 Toda la interfaz está en español y cuenta con 4 módulos en sidebar:

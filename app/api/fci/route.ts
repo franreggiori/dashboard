@@ -67,7 +67,14 @@ export async function GET() {
       }),
     );
 
-    return NextResponse.json({ dateFrom, dateTo, fondos: results });
+    // Usar la última fecha disponible en los datos como referencia,
+    // no la fecha real de hoy (puede que el último CP sea del día anterior).
+    const lastFecha = results
+      .flatMap((f) => f.rows.map((r) => r.fecha))
+      .sort()
+      .at(-1) ?? dateTo;
+
+    return NextResponse.json({ dateFrom, dateTo: lastFecha, fondos: results });
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     return NextResponse.json({ error: message }, { status: 500 });

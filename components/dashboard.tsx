@@ -1580,8 +1580,21 @@ function fmtPrecio(v: number | null, decimals = 4): string {
 
 function fmtTna(v: number | null): string {
   if (v == null) return "—";
-  return v.toFixed(2).replace(".", ",") + "%";
+  return (v >= 0 ? "+" : "") + v.toFixed(2).replace(".", ",") + "%";
 }
+
+const FCI_HISTORICO: Record<string, { año: number; pct: string }[]> = {
+  RFDL10000: [
+    { año: 2025, pct: "+4,78%" },
+    { año: 2024, pct: "+8,04%" },
+    { año: 2023, pct: "+8,75%" },
+  ],
+  "GAL.AHPL.A": [
+    { año: 2025, pct: "+43,24%" },
+    { año: 2024, pct: "+87,30%" },
+    { año: 2023, pct: "+133,96%" },
+  ],
+};
 
 function FCITab() {
   const [data, setData] = useState<FCIResponse | null>(() => {
@@ -1618,7 +1631,10 @@ function FCITab() {
     const lines = data.fondos.map((fondo) => {
       const m = computeMetrics(fondo, data.dateTo);
       const label = FCI_LABELS[fondo.ticker] ?? fondo.name;
-      return `${label}\nTNA 7D: ${fmtTna(m.tna7d)}\nTNA 30D: ${fmtTna(m.tna30d)}`;
+      const hist = (FCI_HISTORICO[fondo.ticker] ?? [])
+        .map((h) => `${h.año}: ${h.pct}`)
+        .join("\n");
+      return `${label}\nTNA 7D: ${fmtTna(m.tna7d)}\nTNA 30D: ${fmtTna(m.tna30d)}\n${hist}`;
     });
     navigator.clipboard.writeText(lines.join("\n\n"));
     setCopied(true);
@@ -1722,6 +1738,16 @@ function FCITab() {
                       </span>
                     </div>
                   ))}
+                  {(FCI_HISTORICO[fondo.ticker] ?? []).length > 0 && (
+                    <div className="mt-3 pt-3 border-t border-slate-100 space-y-1">
+                      {(FCI_HISTORICO[fondo.ticker] ?? []).map((h) => (
+                        <div key={h.año} className="flex items-center gap-2 text-sm">
+                          <span className="w-20 text-slate-500 font-medium">{h.año}:</span>
+                          <span className="font-mono font-semibold text-green-600">{h.pct}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               ))}
             </div>

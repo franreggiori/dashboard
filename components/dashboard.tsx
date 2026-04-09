@@ -1283,8 +1283,11 @@ type TenenciaRow = {
 type YieldsResult = { ticker: string; yBid: number | null; yAsk: number | null };
 type YieldsCached = { results: YieldsResult[] };
 
+const TENENCIAS_URL =
+  "https://raw.githubusercontent.com/franreggiori/dashboard/main/public/tenencias/tenencias.xlsx";
+
 function TenenciasTab() {
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [loading, setLoading] = useState(false);
   const [rows, setRows] = useState<TenenciaRow[]>(() => {
     try {
       const stored = localStorage.getItem("tenencias_data");
@@ -1378,24 +1381,22 @@ function TenenciasTab() {
     XLSX.writeFile(wb, "clientes_afectados.xlsx");
   }
 
-  function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (ev) => {
-      try {
-        const data = ev.target?.result;
-        const wb = XLSX.read(data, { type: "array" });
-        const sheet = wb.Sheets["-tenencias"] ?? wb.Sheets[wb.SheetNames[0]];
-        const parsed = XLSX.utils.sheet_to_json<TenenciaRow>(sheet, { defval: "" });
-        setRows(parsed);
-        try { localStorage.setItem("tenencias_data", JSON.stringify(parsed)); } catch { /* ignore */ }
-      } catch (err) {
-        alert("Error al leer el archivo: " + (err instanceof Error ? err.message : String(err)));
-      }
-    };
-    reader.readAsArrayBuffer(file);
-    e.target.value = "";
+  async function actualizar() {
+    setLoading(true);
+    try {
+      const res = await fetch(TENENCIAS_URL);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const buffer = await res.arrayBuffer();
+      const wb = XLSX.read(buffer, { type: "array" });
+      const sheet = wb.Sheets["-tenencias"] ?? wb.Sheets[wb.SheetNames[0]];
+      const parsed = XLSX.utils.sheet_to_json<TenenciaRow>(sheet, { defval: "" });
+      setRows(parsed);
+      try { localStorage.setItem("tenencias_data", JSON.stringify(parsed)); } catch { /* ignore */ }
+    } catch (err) {
+      alert("Error al cargar el archivo: " + (err instanceof Error ? err.message : String(err)));
+    } finally {
+      setLoading(false);
+    }
   }
 
   const COLS: (keyof TenenciaRow)[] = [
@@ -1413,9 +1414,8 @@ function TenenciasTab() {
           <Button onClick={applyYieldFilter} className="text-sm bg-amber-600 hover:bg-amber-700 text-white">
             Actualizar filtro TIRs
           </Button>
-          <input ref={fileInputRef} type="file" accept=".xlsx" className="hidden" onChange={handleFile} />
-          <Button onClick={() => fileInputRef.current?.click()} className="text-sm">
-            Subir .xlsx
+          <Button onClick={actualizar} disabled={loading} className="text-sm">
+            {loading ? "Cargando…" : "Actualizar"}
           </Button>
         </div>
       </div>
@@ -1491,7 +1491,7 @@ function TenenciasTab() {
 
       {rows.length === 0 ? (
         <div className="text-center py-16 border border-dashed rounded-lg text-slate-400 text-sm">
-          No hay datos cargados. Subí un archivo .xlsx con la hoja &quot;-tenencias&quot;.
+          No hay datos cargados. Presioná &quot;Actualizar&quot; para cargar desde GitHub.
         </div>
       ) : (
         <div className="overflow-x-auto rounded-lg border border-slate-200">

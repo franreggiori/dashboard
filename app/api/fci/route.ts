@@ -56,9 +56,11 @@ export async function GET() {
 
     const now = new Date();
     const dateTo = now.toISOString().slice(0, 10);
-    const dateFrom = new Date(now.getFullYear(), now.getMonth() - 1, now.getDate())
-      .toISOString()
-      .slice(0, 10);
+    // Extendemos a 40 días para garantizar que "Hace 30D" siempre tenga datos,
+    // incluso si el último CP disponible es varios días anterior a hoy.
+    const dateFromDate = new Date(now);
+    dateFromDate.setDate(dateFromDate.getDate() - 40);
+    const dateFrom = dateFromDate.toISOString().slice(0, 10);
 
     const results = await Promise.all(
       FCI_TICKERS.map(async ({ ticker, name }) => {

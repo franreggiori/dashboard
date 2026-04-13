@@ -1610,6 +1610,8 @@ function FCITab() {
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
 
+  useEffect(() => { actualizar(); }, []);
+
   async function actualizar() {
     setLoading(true);
     setError(null);
